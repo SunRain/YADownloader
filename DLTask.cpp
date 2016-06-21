@@ -28,9 +28,12 @@ DLTask::DLTask(QObject *parent)
     , m_totalSize(-1)
     , m_downloadedSize(0)
 {
-    connect (m_workerThread, &QThread::finished, [&](){
-        qDebug()<<Q_FUNC_INFO<<"<<<<<<<<<<<<<<<<<<<<<";
-        //TODO finish DLTaskPeer
+    connect (m_workerThread, &QThread::finished, [&]() {
+        qDebug()<<Q_FUNC_INFO<<"<<<<<<<<<<<<<<<<<";
+        foreach (DLTaskPeer *p, m_peerList) {
+            p->reply()->abort();
+            p->deleteLater ();
+        }
     });
 
     connect (m_networkMgr, &QNetworkAccessManager::finished,
@@ -202,12 +205,6 @@ void DLTask::initPeers()
         }
         DLTaskPeer *peer = new DLTaskPeer(index++, info, tmp, 0);
         peer->moveToThread (m_workerThread);
-        connect (m_workerThread, &QThread::finished, [&]() {
-            qDebug()<<Q_FUNC_INFO<<"<<<<<<<<<<<<<<<<<";
-            foreach (DLTaskPeer *p, m_peerList) {
-                p->deleteLater ();
-            }
-        });
         m_peerList.append (peer);
     }
 }

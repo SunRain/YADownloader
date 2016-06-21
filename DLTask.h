@@ -58,9 +58,9 @@ private:
     int m_peerSize;             //每个数据块大小
     qint64 m_totalSize;        //文件总大小
     quint64 m_downloadedSize;   //文件已经下载的大小
-
-//    PeerList m_peerList;
 };
+
+
 
 } //YADownloader
 #endif // DLTASK_H
