@@ -3,33 +3,37 @@
 
 #include <QUrl>
 #include <QHash>
+#include <QSharedPointer>
 
 #include "yadownloader_global.h"
 
 namespace YADownloader {
 
+class DLRequestPriv;
 class YADOWNLOADERSHARED_EXPORT DLRequest
 {
 public:
-    explicit DLRequest();
-    explicit DLRequest(const QUrl &requestUrl, const QString &savePath, const QString &saveName);
-    explicit DLRequest(const DLRequest &other);
+    DLRequest();
+    DLRequest(const QUrl &requestUrl, const QString &savePath, const QString &saveName);
+    DLRequest(const DLRequest &other);
     virtual ~DLRequest();
 
     DLRequest &operator =(const DLRequest &other);
     bool operator ==(const DLRequest &other) const;
-    inline bool operator !=(const DLRequest &other) const {
-        return !operator == (other);
-    }
+    bool operator !=(const DLRequest &other) const;
 
-    inline QString filePath() {
-        return QString("%1/%2").arg (savePath ()).arg (saveName ());
-    }
+    ///
+    /// \brief hasSameIdentifier
+    /// \param other
+    /// \return if has same identifier.
+    /// The identifier tuple is composed of downloadUrl requestUrl saveName savePath
+    ///
+    bool hasSameIdentifier(const DLRequest &other);
+
+    QString filePath() const;
 
     void setRawHeader(const QByteArray &name, const QByteArray &value);
-    inline QHash<QByteArray, QByteArray> rawHeaders() const {
-        return m_headerList;
-    }
+    QHash<QByteArray, QByteArray> rawHeaders() const;
 
     QUrl requestUrl() const;
     void setRequestUrl(const QUrl &requestUrl);
@@ -47,12 +51,7 @@ public:
     void setDownloadUrl(const QUrl &downloadUrl);
 
 private:
-    QUrl m_requestUrl;
-    QUrl m_downloadUrl;
-    QString m_savePath;
-    QString m_saveName;
-    QHash<QByteArray, QByteArray> m_headerList;
-    int m_preferThreadCount;
+    QSharedPointer<DLRequestPriv> d;
 };
 
 } //YADownloader
