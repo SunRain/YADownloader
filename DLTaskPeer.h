@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QReadWriteLock>
+#include <QSharedPointer>
 #include "yadownloader_global.h"
 
 class QFile;

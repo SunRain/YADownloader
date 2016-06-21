@@ -118,9 +118,9 @@ quint64 PeerInfo::rangeStart() const {
 
 QDebug operator <<(QDebug dbg, const PeerInfo &info)
 {
-    return QString("Peer [start=%1],[end=%2],[complete=%3], [path=%4]")
-            .arg(info.startIndex()).arg(info.endIndex())
-            .arg(info.completedCount()).arg(info.filePath());
+    return dbg<<QString("Peer [start=%1],[end=%2],[complete=%3], [path=%4]")
+                .arg(info.startIndex()).arg(info.endIndex())
+                .arg(QString::number(info.completedCount())).arg(info.filePath());
 }
 
 DLTaskPeer::DLTaskPeer(int index, const PeerInfo &info, QNetworkReply *reply, QObject *parent)
@@ -131,9 +131,9 @@ DLTaskPeer::DLTaskPeer(int index, const PeerInfo &info, QNetworkReply *reply, QO
     , m_index(index)
     , m_doneCount(0)
 {
-    qDebug()<<Q_FUNC_INFO<<"peer index ["<<m_index<<"] for peer "<<m_peerInfo.toString ();
+    qDebug()<<Q_FUNC_INFO<<"peer index ["<<m_index<<"] for peer "<<m_peerInfo;
 
-    m_file->setFileName (m_peerInfo.filePath + PEER_TAG);
+    m_file->setFileName (m_peerInfo.filePath() + PEER_TAG);
     if (!m_file->open (QIODevice::ReadWrite)) {
         qDebug()<<Q_FUNC_INFO<<"open error for "<<m_file->fileName ();
     }
@@ -178,9 +178,9 @@ PeerInfo DLTaskPeer::info() const {
 
 QByteArray DLTaskPeer::hash() const
 {
-    QString data = QString::number (m_peerInfo.startIndex)
-            + QString::number (m_peerInfo.endIndex)
-            + m_reply->request ().url ().toString ();
+    QString data = QString::number(m_peerInfo.startIndex())
+            + QString::number(m_peerInfo.endIndex())
+            + m_reply->request().url().toString();
     return QCryptographicHash::hash (data.toUtf8 (), QCryptographicHash::Sha1);
 }
 
@@ -206,52 +206,6 @@ QNetworkReply *DLTaskPeer::reply() {
 int DLTaskPeer::index() {
     return m_index;
 }
-
-quint64 PeerInfoPriv::getEndIndex() const
-{
-return endIndex;
-}
-
-void PeerInfoPriv::setEndIndex(const quint64 &value)
-{
-endIndex = value;
-}
-
-QString PeerInfoPriv::getFilePath() const
-{
-return filePath;
-}
-
-void PeerInfoPriv::setFilePath(const QString &value)
-{
-filePath = value;
-}
-
-quint64 PeerInfoPriv::getStartIndex() const
-{
-return startIndex;
-}
-
-void PeerInfoPriv::setStartIndex(const quint64 &value)
-{
-startIndex = value;
-}
-
-quint64 PeerInfoPriv::getCompletedCount() const
-{
-return completedCount;
-}
-
-void PeerInfoPriv::setCompletedCount(const quint64 &value)
-{
-completedCount = value;
-}
-
-
-
-
-
-
 
 
 
