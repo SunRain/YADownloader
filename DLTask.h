@@ -16,11 +16,9 @@ class YADOWNLOADERSHARED_EXPORT DLTask : public QObject
 {
     Q_OBJECT
 public:
-    explicit DLTask(QObject *parent = 0);
-    explicit DLTask(const DLRequest &request, QObject *parent = 0);
+
     virtual ~DLTask();
 
-    void setRequest(const DLRequest &request);
     const DLRequest &request() const;
 
 public slots:
@@ -35,6 +33,9 @@ protected:
         DL_STOP,
         DL_SUSPEND
     };
+    explicit DLTask(QObject *parent = 0);
+    explicit DLTask(const DLRequest &request, QObject *parent = 0);
+    void setRequest(const DLRequest &request);
 
 private:
     void initFileSize();

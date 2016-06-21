@@ -11,7 +11,8 @@ SOURCES += \
     $$PWD/SignalCenter.cpp \
     $$PWD/DLRequest.cpp \
     $$PWD/DLTask.cpp \
-    $$PWD/DLTaskPeer.cpp
+    $$PWD/DLTaskPeer.cpp \
+    $$PWD/DLTaskImpl.cpp
 
 HEADERS += \
     $$PWD/YADownloader.h \
@@ -25,6 +26,7 @@ HEADERS += \
     $$PWD/SignalCenter.h \
     $$PWD/DLRequest.h \
     $$PWD/DLTask.h \
-    $$PWD/DLTaskPeer.h
+    $$PWD/DLTaskPeer.h \
+    $$PWD/DLTaskImpl.h
 
 
