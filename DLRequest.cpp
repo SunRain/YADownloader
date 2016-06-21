@@ -64,7 +64,7 @@ DLRequest::~DLRequest()
 
 DLRequest &DLRequest::operator =(const DLRequest &other)
 {
-    if (this != other.d)
+    if (this != &other)
         d.operator =(other.d);
     return *this;
 }
