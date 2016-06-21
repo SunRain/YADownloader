@@ -2,8 +2,7 @@
 
 #include <QDebug>
 
-#include "SignalCenter.h"
-#include "TaskObject.h"
+#include "DLTaskImpl.h"
 
 namespace YADownloader {
 
@@ -18,14 +17,12 @@ DownloadMgr::~DownloadMgr()
 
 }
 
-void DownloadMgr::NewDownloadTask(TaskObject *object)
+DLTask *DownloadMgr::get(const DLRequest &request)
 {
-    if (!object) {
-        qWarning()<<Q_FUNC_INFO<<"Opps, empty task object was addedd !!";
-        return;
-    }
-
-//    SignalCenter::instance ()->TaskObjectAdded (object);
+    DLTaskImpl *task = new DLTaskImpl(request);
+    return task;
 }
+
+
 
 } //YADownloader

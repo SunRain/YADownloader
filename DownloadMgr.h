@@ -4,10 +4,11 @@
 #include <QObject>
 #include "yadownloader_global.h"
 #include "SingletonPointer.h"
+#include "DLRequest.h"
 
 namespace YADownloader {
 
-class TaskObject;
+class DLTask;
 class YADOWNLOADERSHARED_EXPORT DownloadMgr : public QObject
 {
     Q_OBJECT
@@ -15,7 +16,7 @@ class YADOWNLOADERSHARED_EXPORT DownloadMgr : public QObject
 public:
     virtual ~DownloadMgr();
 
-    void NewDownloadTask(TaskObject *object);
+    DLTask *get(const DLRequest &request);
 
 };
 
