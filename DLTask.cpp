@@ -185,17 +185,17 @@ void DLTask::initPeers()
             end = m_totalSize;
         }
         PeerInfo info;
-        info.startIndex = start; //dl start point
-        info.endIndex = end-1; //dl end point
-        info.completedCount = 0; //finished
-        info.filePath = m_dlRequest.filePath ();
+        info.setStartIndex(start);
+        info.setEndIndex(end-1);
+        info.setCompletedCount(0);
+        info.setFilePath(m_dlRequest.filePath());
         infoList.append (info);
     }
 
     int index = 0;
     foreach (PeerInfo info, infoList) {
         QNetworkRequest req(m_dlRequest.downloadUrl ());
-        QString range = QString("bytes=%1-%2").arg (info.rangeStart ()).arg (info.endIndex);
+        QString range = QString("bytes=%1-%2").arg(info.rangeStart()).arg(info.endIndex());
         req.setRawHeader ("Range", range.toUtf8 ());
         req.setRawHeader ("Connection", "keep-alive");
         QNetworkReply *tmp = m_networkMgr->get (req);
