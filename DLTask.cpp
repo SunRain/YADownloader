@@ -129,9 +129,9 @@ void DLTask::initFileSize() {
             } else {
                 QNetworkReply::NetworkError error = m_headReply->error ();
                 if (error != QNetworkReply::NoError) {
+                    qDebug()<<Q_FUNC_INFO<<"get head error ["<<m_headReply->errorString ()<<"]";
                     m_headReply->deleteLater ();
                     m_headReply = nullptr;
-                    qDebug()<<Q_FUNC_INFO<<"get head error ["<<m_headReply->errorString ()<<"]";
                     if (count > 0) { //re-try to get header
                         initFileSize ();
                     }
