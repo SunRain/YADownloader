@@ -12,8 +12,9 @@ class DLTask;
 class YADOWNLOADERSHARED_EXPORT DownloadMgr : public QObject
 {
     Q_OBJECT
-    DECLARE_SINGLETON_POINTER(DownloadMgr)
+//    DECLARE_SINGLETON_POINTER(DownloadMgr)
 public:
+    explicit DownloadMgr(QObject *parent = 0);
     virtual ~DownloadMgr();
 
     DLTask *get(const DLRequest &request);
