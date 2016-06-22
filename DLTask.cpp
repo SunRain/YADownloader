@@ -103,10 +103,12 @@ void DLTask::start()
 void DLTask::initFileSize() {
     qDebug()<<Q_FUNC_INFO<<"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
 
-    QNetworkRequest req(m_dlRequest.downloadUrl ());
+    QNetworkRequest req(m_dlRequest.requestUrl());
     if (!m_dlRequest.rawHeaders ().isEmpty ()) {
         foreach (QByteArray key, m_dlRequest.rawHeaders ().keys ()) {
-            req.setRawHeader (key, m_dlRequest.rawHeaders ().value (key, QByteArray()));
+//            QString value = m_dlRequest.rawHeaders().value(key, QByteArray());
+//            qDebug()<<Q_FUNC_INFO<<QString("insert header [%1] = [%2]").arg(QString(key)).arg(value);
+            req.setRawHeader (key, m_dlRequest.rawHeaders().value(key, QByteArray()));
         }
     }
     if (m_headReply) {
@@ -195,9 +197,17 @@ void DLTask::initPeers()
     int index = 0;
     foreach (PeerInfo info, infoList) {
         QNetworkRequest req(m_dlRequest.downloadUrl ());
+        if (!m_dlRequest.rawHeaders ().isEmpty ()) {
+            foreach (QByteArray key, m_dlRequest.rawHeaders ().keys ()) {
+//                QString value = m_dlRequest.rawHeaders().value(key, QByteArray());
+//                qDebug()<<Q_FUNC_INFO<<QString("insert header [%1] = [%2]").arg(QString(key)).arg(value);
+                req.setRawHeader(key, m_dlRequest.rawHeaders().value(key, QByteArray()));
+            }
+        }
         QString range = QString("bytes=%1-%2").arg(info.rangeStart()).arg(info.endIndex());
         req.setRawHeader ("Range", range.toUtf8 ());
         req.setRawHeader ("Connection", "keep-alive");
+
         QNetworkReply *tmp = m_networkMgr->get (req);
         if (!tmp) {
             qCritical()<<Q_FUNC_INFO<<"No QNetworkReply， download cant start";
@@ -207,6 +217,8 @@ void DLTask::initPeers()
         peer->moveToThread (m_workerThread);
         m_peerList.append (peer);
     }
+    if (!m_workerThread->isRunning())
+        m_workerThread->start();
 }
 
 

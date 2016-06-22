@@ -143,11 +143,13 @@ DLTaskPeer::DLTaskPeer(int index, const PeerInfo &info, QNetworkReply *reply, QO
             qDebug()<<Q_FUNC_INFO<<"index ["<<m_index<<"] readyRead bytes "<<(m_reply)->bytesAvailable ();
             QByteArray qba = m_reply->readAll ();
             quint64 pos = m_peerInfo.rangeStart ()+doneCount ();
-            qDebug()<<Q_FUNC_INFO<<"file seek to "<<pos;
+            qDebug()<<Q_FUNC_INFO<<"index ["<<m_index<<"] file seek to "<<pos;
             m_lock.lockForWrite ();
+            qDebug()<<Q_FUNC_INFO<<"index ["<<m_index<<"] lockForWrite ";
             m_file->seek (pos);
             m_file->write (qba);
             m_lock.unlock ();
+            qDebug()<<Q_FUNC_INFO<<"index ["<<m_index<<"] setDoneCount "<<doneCount() + qba.size();
             setDoneCount (doneCount () + qba.size ());
         }
     });

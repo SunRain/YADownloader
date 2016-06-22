@@ -35,6 +35,10 @@ public:
     void setRawHeader(const QByteArray &name, const QByteArray &value);
     QHash<QByteArray, QByteArray> rawHeaders() const;
 
+    ///
+    /// \brief requestUrl url for download request
+    /// \return
+    ///
     QUrl requestUrl() const;
     void setRequestUrl(const QUrl &requestUrl);
 
@@ -47,6 +51,10 @@ public:
     int preferThreadCount() const;
     void setPreferThreadCount(int preferThreadCount);
 
+    ///
+    /// \brief downloadUrl url for real download url if url redirect
+    /// \return
+    ///
     QUrl downloadUrl() const;
     void setDownloadUrl(const QUrl &downloadUrl);
 
