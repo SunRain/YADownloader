@@ -14,7 +14,9 @@ SOURCES += \
     $$PWD/DLTaskPeer.cpp \
     $$PWD/DLTaskImpl.cpp \
     $$PWD/DLTaskHeaderReader.cpp \
-    $$PWD/DLTaskStateDispatch.cpp
+    $$PWD/DLTaskStateDispatch.cpp \
+    $$PWD/DLTransmissionDatabase.cpp \
+    $$PWD/DLTaskInfo.cpp
 
 HEADERS += \
     $$PWD/YADownloader.h \
@@ -31,6 +33,8 @@ HEADERS += \
     $$PWD/DLTaskPeer.h \
     $$PWD/DLTaskImpl.h \
     $$PWD/DLTaskHeaderReader.h \
-    $$PWD/DLTaskStateDispatch.h
+    $$PWD/DLTaskStateDispatch.h \
+    $$PWD/DLTransmissionDatabase.h \
+    $$PWD/DLTaskInfo.h
 
 
