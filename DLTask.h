@@ -23,6 +23,12 @@ public:
 
     const DLRequest &request() const;
 
+    ///
+    /// \brief uid unique ID of task
+    /// \return
+    ///
+    QString uid() const;
+
     // QObject interface
 public:
     bool event(QEvent *event);
@@ -62,6 +68,8 @@ private:
 
     DLRequest m_dlRequest;
     TaskStatus m_DLStatus;
+
+    QString m_uid;
 
     int m_initHeaderCounts;
     int m_peerCount;            //分解的数据块量

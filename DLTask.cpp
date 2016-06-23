@@ -5,6 +5,7 @@
 #include <QEventLoop>
 #include <QEventLoopLocker>
 #include <QTimer>
+#include <QCryptographicHash>
 
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -82,10 +83,17 @@ DLTask::~DLTask()
 
 void DLTask::setRequest(const DLRequest &request) {
     m_dlRequest = request;
+    QString str = request.requestUrl() + request.filePath();
+    m_uid = QCryptographicHash::hash(str.toUtf8(), QCryptographicHash::Md5);
 }
 
 const DLRequest &DLTask::request() const {
     return m_dlRequest;
+}
+
+QString DLTask::uid() const
+{
+    return m_uid;
 }
 
 bool DLTask::event(QEvent *event)
