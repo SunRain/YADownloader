@@ -12,6 +12,8 @@ class QThread;
 namespace YADownloader {
 
 class DLTaskPeer;
+class DLTaskHeaderReader;
+class DLTaskStateDispatch;
 class YADOWNLOADERSHARED_EXPORT DLTask : public QObject
 {
     Q_OBJECT
@@ -20,6 +22,10 @@ public:
     virtual ~DLTask();
 
     const DLRequest &request() const;
+
+    // QObject interface
+public:
+    bool event(QEvent *event);
 
 public slots:
     void start();
@@ -37,8 +43,11 @@ protected:
     explicit DLTask(const DLRequest &request, QObject *parent = 0);
     void setRequest(const DLRequest &request);
 
+signals:
+    void initFileSize(qint64 fileSize);
+
 private:
-    void initFileSize();
+//    void initFileSize();
     void initPeers();
 
 private:
@@ -46,6 +55,8 @@ private:
     QNetworkReply *m_reply;
     QNetworkReply *m_headReply;
     QThread *m_workerThread;
+    DLTaskHeaderReader *m_headerReader;
+    DLTaskStateDispatch *m_dispatch;
 
     QList<DLTaskPeer *> m_peerList;
 
@@ -53,8 +64,6 @@ private:
     TaskStatus m_DLStatus;
 
     int m_initHeaderCounts;
-    bool m_isInitiated;
-
     int m_peerCount;            //分解的数据块量
     int m_peerSize;             //每个数据块大小
     qint64 m_totalSize;        //文件总大小

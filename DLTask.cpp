@@ -2,6 +2,9 @@
 
 #include <QDebug>
 #include <QThread>
+#include <QEventLoop>
+#include <QEventLoopLocker>
+#include <QTimer>
 
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -10,6 +13,8 @@
 #include "DLRequest.h"
 #include "SignalCenter.h"
 #include "DLTaskPeer.h"
+#include "DLTaskStateDispatch.h"
+#include "DLTaskHeaderReader.h"
 
 namespace YADownloader {
 
@@ -17,12 +22,12 @@ DLTask::DLTask(QObject *parent)
     : QObject(parent)
     , m_networkMgr(new QNetworkAccessManager(this))
     , m_reply(nullptr)
-    , m_headReply(nullptr)
     , m_workerThread(new QThread(this))
+    , m_headerReader(nullptr)
+    , m_dispatch(new DLTaskStateDispatch(this))
     , m_dlRequest(DLRequest())
     , m_DLStatus(DL_STOP)
     , m_initHeaderCounts(3)
-    , m_isInitiated(false)
     , m_peerCount(0)
     , m_peerSize(0)
     , m_totalSize(-1)
@@ -62,14 +67,15 @@ DLTask::~DLTask()
     m_workerThread->deleteLater ();
     m_workerThread = nullptr;
 
-    if (m_headReply) {
-        m_headReply->abort ();
-        m_headReply->deleteLater ();
-        m_headReply = nullptr;
-    }
     if (m_networkMgr) {
         m_networkMgr->deleteLater ();
         m_networkMgr = nullptr;
+    }
+    if (m_headerReader) {
+        if (m_headerReader->isRunning())
+            m_headerReader->abort();
+        m_headerReader->deleteLater();
+        m_headerReader = nullptr;
     }
 
 }
@@ -82,88 +88,34 @@ const DLRequest &DLTask::request() const {
     return m_dlRequest;
 }
 
+bool DLTask::event(QEvent *event)
+{
+    if (event->type() == DLTASK_EVENT_FILE_SIZE) {
+        qDebug()<<Q_FUNC_INFO<<"========== FileSizeEvent";
+        FileSizeEvent *e = (FileSizeEvent*)event;
+        m_totalSize = e->fileSize();
+        qDebug()<<Q_FUNC_INFO<<" file size "<<m_totalSize;
+        emit initFileSize(m_totalSize);
+        if (m_DLStatus == DL_START) {
+            if (!m_workerThread->isRunning ())
+                m_workerThread->start ();
+            if (m_peerList.isEmpty ()) {
+                initPeers ();
+            }
+        }
+        return true;
+    }
+    return QObject::event(event);
+}
+
 void DLTask::start()
 {
     m_DLStatus = DL_START;
-    if (!m_isInitiated) {
-        initFileSize ();
-        return;
-    }
-    qDebug()<<Q_FUNC_INFO<<"File size "<<m_totalSize;
-
-    if (!m_workerThread->isRunning ())
-        m_workerThread->start ();
-    if (m_peerList.isEmpty ()) {
-        initPeers ();
-    }
-
-
-}
-
-void DLTask::initFileSize() {
-    qDebug()<<Q_FUNC_INFO<<"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
-
-    QNetworkRequest req(m_dlRequest.requestUrl());
-    if (!m_dlRequest.rawHeaders ().isEmpty ()) {
-        foreach (QByteArray key, m_dlRequest.rawHeaders ().keys ()) {
-//            QString value = m_dlRequest.rawHeaders().value(key, QByteArray());
-//            qDebug()<<Q_FUNC_INFO<<QString("insert header [%1] = [%2]").arg(QString(key)).arg(value);
-            req.setRawHeader (key, m_dlRequest.rawHeaders().value(key, QByteArray()));
-        }
-    }
-    if (m_headReply) {
-        m_headReply->deleteLater ();
-        m_headReply = nullptr;
-    }
-    m_headReply = m_networkMgr->head (req);
-    if (m_headReply) {
-        connect (m_headReply, &QNetworkReply::finished, [&]() {
-            int count = m_initHeaderCounts--;
-            qDebug()<<Q_FUNC_INFO<<" try count "<<count;
-
-            if (count == 0) {
-                qDebug()<<Q_FUNC_INFO<<"Try counts out";
-                m_isInitiated = true;
-                m_headReply->deleteLater ();
-                m_headReply = nullptr;
-                if (m_DLStatus == DL_START)
-                    start ();
-            } else {
-                QNetworkReply::NetworkError error = m_headReply->error ();
-                if (error != QNetworkReply::NoError) {
-                    qDebug()<<Q_FUNC_INFO<<"get head error ["<<m_headReply->errorString ()<<"]";
-                    m_headReply->deleteLater ();
-                    m_headReply = nullptr;
-                    if (count > 0) { //re-try to get header
-                        initFileSize ();
-                    }
-                } else {
-                    int status = m_headReply->attribute (QNetworkRequest::HttpStatusCodeAttribute).toInt ();
-                    qDebug()<<Q_FUNC_INFO<<"header statu code "<<status;
-                    if (status == 302) { //redirect
-                        qDebug()<<Q_FUNC_INFO<<" try  redirect";
-                        ++m_initHeaderCounts; //redirect, we should add 1 to m_initHeaderCounts
-                        QUrl url = m_headReply->header (QNetworkRequest::LocationHeader).toUrl ();
-                        if (url.isValid ()) {
-                            qDebug()<<Q_FUNC_INFO<<"redirect url: "<<url;
-                            m_dlRequest.setDownloadUrl (url);
-                        }
-                        m_headReply->deleteLater ();
-                        m_headReply = nullptr;
-                        initFileSize ();
-                    } else {
-                        m_totalSize = m_headReply->header (QNetworkRequest::ContentLengthHeader).toLongLong ();
-                        m_headReply->deleteLater ();
-                        m_headReply = nullptr;
-                        qDebug()<<Q_FUNC_INFO<<" m_totalSize "<<m_totalSize;
-                        m_isInitiated = true;
-                        if (m_DLStatus == DL_START)
-                            start ();
-                    }
-                }
-            }
-        });
-    }
+    if (!m_headerReader)
+        m_headerReader = new DLTaskHeaderReader(&m_dlRequest, m_dispatch, this);
+    if (m_headerReader->isRunning())
+        m_headerReader->abort();
+    m_headerReader->initFileSize();
 }
 
 void DLTask::initPeers()
