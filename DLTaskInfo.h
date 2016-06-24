@@ -46,7 +46,7 @@ public:
 
     PeerInfoList peerList() const;
 
-    void setUid(QString uid);
+    void setUid(const QString &uid);
 
     void setDownloadUrl(const QString &downloadUrl);
 
@@ -58,7 +58,7 @@ public:
 
     void setReadySize(quint64 readySize);
 
-    void setPeerList(PeerInfoList peerList);
+    void setPeerList(const PeerInfoList &peerList);
 
 private:
     QSharedPointer<DLTaskInfoPriv> d;
