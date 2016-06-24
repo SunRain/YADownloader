@@ -3,6 +3,7 @@
 #include <QSharedData>
 
 #include "DLTaskPeer.h"
+#include "DLTransmissionDatabaseKeys.h"
 
 namespace YADownloader {
 
@@ -62,6 +63,12 @@ DLTaskInfo &DLTaskInfo::operator =(const DLTaskInfo &other)
     if (this != &other)
         d.operator =(other.d);
     return *this;
+}
+
+bool DLTaskInfo::isEmpty() const
+{
+    return d.data()->downloadUrl.isEmpty() || d.data()->requestUrl.isEmpty()
+            || d.data()->filePath.isEmpty() || d.data()->peerList.isEmpty();
 }
 
 bool DLTaskInfo::hasSameIdentifier(const PeerInfo &other)
@@ -138,6 +145,27 @@ void DLTaskInfo::setReadySize(quint64 readySize)
 void DLTaskInfo::setPeerList(const PeerInfoList &peerList)
 {
     d.data()->peerList = peerList;
+}
+
+QDebug operator <<(QDebug dbg, const YADownloader::DLTaskInfo &info)
+{
+    QVariantMap map;
+    map.insert(TASK_INFO_UID, info.uid());
+    map.insert(TASK_INFO_FILE_PATH, info.filePath());
+    map.insert(TASK_INFO_DL_URL, info.downloadUrl());
+    map.insert(TASK_INFO_REQ_URL, info.requestUrl());
+    map.insert(TASK_INFO_READY_SIZE, info.readySize());
+    map.insert(TASK_INFO_TOTAL_SIZE, info.totalSize());
+    QVariantList list;
+    foreach (PeerInfo p, info.peerList()) {
+        QVariantMap map;
+        map.insert(TASK_PEER_START_IDX, p.startIndex());
+        map.insert(TASK_PEER_END_IDX, p.endIndex());
+        map.insert(TASK_PEER_COMPLETED_CNT, p.completedCount());
+        list.append(map);
+    }
+    map.insert(TASK_INFO_PEER_LIST, map);
+    return dbg<<map;
 }
 
 } //YADownloader

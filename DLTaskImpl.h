@@ -8,11 +8,12 @@
 
 namespace YADownloader {
 
+class DLTransmissionDatabase;
 class YADOWNLOADERSHARED_EXPORT DLTaskImpl : public DLTask
 {
     Q_OBJECT
 public:
-    explicit DLTaskImpl(const DLRequest &request, QObject *parent = 0);
+    explicit DLTaskImpl(const DLRequest &request, DLTransmissionDatabase *db, QObject *parent = 0);
 
 };
 

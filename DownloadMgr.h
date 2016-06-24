@@ -9,6 +9,7 @@
 namespace YADownloader {
 
 class DLTask;
+class DLTransmissionDatabase;
 class YADOWNLOADERSHARED_EXPORT DownloadMgr : public QObject
 {
     Q_OBJECT
@@ -18,6 +19,9 @@ public:
     virtual ~DownloadMgr();
 
     DLTask *get(const DLRequest &request);
+
+private:
+    DLTransmissionDatabase *m_transDB;
 
 };
 

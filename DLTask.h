@@ -14,6 +14,7 @@ namespace YADownloader {
 class DLTaskPeer;
 class DLTaskHeaderReader;
 class DLTaskStateDispatch;
+class DLTransmissionDatabase;
 class YADOWNLOADERSHARED_EXPORT DLTask : public QObject
 {
     Q_OBJECT
@@ -21,7 +22,7 @@ public:
 
     virtual ~DLTask();
 
-    const DLRequest &request() const;
+    DLRequest request() const;
 
     ///
     /// \brief uid unique ID of task
@@ -45,8 +46,8 @@ protected:
         DL_STOP,
         DL_SUSPEND
     };
-    explicit DLTask(QObject *parent = 0);
-    explicit DLTask(const DLRequest &request, QObject *parent = 0);
+    DLTask(DLTransmissionDatabase *db, QObject *parent = 0);
+    DLTask(DLTransmissionDatabase *db, const DLRequest &request, QObject *parent = 0);
     void setRequest(const DLRequest &request);
 
 signals:
@@ -55,6 +56,7 @@ signals:
 private:
 //    void initFileSize();
     void initPeers();
+    void calculateUID();
 
 private:
     QNetworkAccessManager *m_networkMgr;
@@ -63,6 +65,7 @@ private:
     QThread *m_workerThread;
     DLTaskHeaderReader *m_headerReader;
     DLTaskStateDispatch *m_dispatch;
+    DLTransmissionDatabase *m_transDB;
 
     QList<DLTaskPeer *> m_peerList;
 

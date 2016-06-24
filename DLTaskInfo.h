@@ -1,6 +1,7 @@
 #ifndef DLTASKINFO_H
 #define DLTASKINFO_H
 
+#include <QDebug>
 #include <QObject>
 #include <QSharedPointer>
 
@@ -23,6 +24,7 @@ public:
     bool operator !=(const DLTaskInfo &other);
     DLTaskInfo &operator =(const DLTaskInfo &other);
 
+    bool isEmpty() const;
     //TODO
     ///
     /// \brief hasSameIdentifier
@@ -63,6 +65,9 @@ public:
 private:
     QSharedPointer<DLTaskInfoPriv> d;
 };
+
+QDebug operator <<(QDebug dbg, const DLTaskInfo& info);
+
 
 } //YADownloader
 #endif // DLTASKINFO_H

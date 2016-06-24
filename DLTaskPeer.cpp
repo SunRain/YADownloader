@@ -9,6 +9,8 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 
+#include "DLTransmissionDatabaseKeys.h"
+
 namespace YADownloader {
 
 const static QString PEER_TAG = ".peer";
@@ -116,11 +118,16 @@ quint64 PeerInfo::rangeStart() const {
     return d.data()->startIndex + dlCompleted();
 }
 
-QDebug operator <<(QDebug dbg, const PeerInfo &info)
+QDebug operator <<(QDebug dbg, const YADownloader::PeerInfo &info)
 {
-    return dbg<<QString("Peer [start=%1],[end=%2],[complete=%3], [path=%4]")
-                .arg(info.startIndex()).arg(info.endIndex())
-                .arg(QString::number(info.completedCount())).arg(info.filePath());
+//    return dbg<<QString("Peer [start=%1],[end=%2],[complete=%3], [path=%4]")
+//                .arg(info.startIndex()).arg(info.endIndex())
+//                .arg(QString::number(info.completedCount())).arg(info.filePath());
+    QVariantMap map;
+    map.insert(TASK_PEER_START_IDX, info.startIndex());
+    map.insert(TASK_PEER_END_IDX, info.endIndex());
+    map.insert(TASK_PEER_COMPLETED_CNT, info.completedCount());
+    return dbg<<map;
 }
 
 DLTaskPeer::DLTaskPeer(int index, const PeerInfo &info, QNetworkReply *reply, QObject *parent)

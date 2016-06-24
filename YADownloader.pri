@@ -35,6 +35,7 @@ HEADERS += \
     $$PWD/DLTaskHeaderReader.h \
     $$PWD/DLTaskStateDispatch.h \
     $$PWD/DLTransmissionDatabase.h \
-    $$PWD/DLTaskInfo.h
+    $$PWD/DLTaskInfo.h \
+    $$PWD/DLTransmissionDatabaseKeys.h
 
 

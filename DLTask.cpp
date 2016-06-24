@@ -16,18 +16,59 @@
 #include "DLTaskPeer.h"
 #include "DLTaskStateDispatch.h"
 #include "DLTaskHeaderReader.h"
+#include "DLTransmissionDatabase.h"
 
 namespace YADownloader {
 
-DLTask::DLTask(QObject *parent)
+DLTask::DLTask(DLTransmissionDatabase *db, QObject *parent)
+    : DLTask(db, DLRequest(), parent)
+//    , m_networkMgr(new QNetworkAccessManager(this))
+//    , m_reply(nullptr)
+//    , m_workerThread(new QThread(this))
+//    , m_headerReader(nullptr)
+//    , m_dispatch(new DLTaskStateDispatch(this))
+//    , m_transDB(db)
+//    , m_dlRequest(DLRequest())
+//    , m_DLStatus(DL_STOP)
+//    , m_uid(QString())
+//    , m_initHeaderCounts(3)
+//    , m_peerCount(0)
+//    , m_peerSize(0)
+//    , m_totalSize(-1)
+//    , m_downloadedSize(0)
+{
+//    connect (m_workerThread, &QThread::finished, [&]() {
+//        qDebug()<<Q_FUNC_INFO<<"<<<<<<<<<<<<<<<<<";
+//        foreach (DLTaskPeer *p, m_peerList) {
+//            p->reply()->abort();
+//            p->deleteLater ();
+//        }
+//    });
+
+//    connect (m_networkMgr, &QNetworkAccessManager::finished,
+//             [&](QNetworkReply *reply) {
+//        qDebug()<<Q_FUNC_INFO<<">>>>>>>>>>>>>>>>>>>>>>>";
+//        foreach (DLTaskPeer *r, m_peerList) {
+//            if (r->reply () == reply) {
+//                qDebug()<<Q_FUNC_INFO<<"found peer "<<r->index ()<<" remain file size "<<reply->size ();
+//            }
+//        }
+//    });
+
+//    calculateUID();
+}
+
+DLTask::DLTask(DLTransmissionDatabase *db, const DLRequest &request, QObject *parent)
     : QObject(parent)
     , m_networkMgr(new QNetworkAccessManager(this))
     , m_reply(nullptr)
     , m_workerThread(new QThread(this))
     , m_headerReader(nullptr)
     , m_dispatch(new DLTaskStateDispatch(this))
-    , m_dlRequest(DLRequest())
+    , m_transDB(db)
+    , m_dlRequest(request)
     , m_DLStatus(DL_STOP)
+    , m_uid(QString())
     , m_initHeaderCounts(3)
     , m_peerCount(0)
     , m_peerSize(0)
@@ -51,12 +92,8 @@ DLTask::DLTask(QObject *parent)
             }
         }
     });
-}
 
-DLTask::DLTask(const DLRequest &request, QObject *parent)
-    : DLTask(parent)
-{
-    m_dlRequest = request;
+    calculateUID();
 }
 
 DLTask::~DLTask()
@@ -83,11 +120,10 @@ DLTask::~DLTask()
 
 void DLTask::setRequest(const DLRequest &request) {
     m_dlRequest = request;
-    QString str = request.requestUrl().toString() + request.filePath();
-    m_uid = QCryptographicHash::hash(str.toUtf8(), QCryptographicHash::Md5);
+    calculateUID();
 }
 
-const DLRequest &DLTask::request() const {
+DLRequest DLTask::request() const {
     return m_dlRequest;
 }
 
@@ -132,26 +168,47 @@ void DLTask::initPeers()
         m_dlRequest.setPreferThreadCount (1);
     }
 
-    //TODO for continue download from tmp files
-
-    //download new file
-    QList<PeerInfo> infoList;
-    int threadCount = m_dlRequest.preferThreadCount ();
-    quint64 step = m_totalSize/threadCount;
-    quint64 start = -step;
-    quint64 end = 0;
-    for (int index=1; index <= threadCount; ++index) {
-        end += step;
-        start += step;
-        if (index == threadCount) {
-            end = m_totalSize;
+//    DLTransmissionDatabase *db = DLTransmissionDatabase::instance();
+    DLTaskInfo task;
+    foreach (DLTaskInfo info, m_transDB->list()) {
+        if (info.uid() == m_uid  //uid same means same requestUrl && filePath && downloadUrl
+//                && info.downloadUrl() == m_dlRequest.downloadUrl() //check if url redirected
+                && info.totalSize() == m_totalSize) { //check if remote host file changed
+            task = info;
+            break;
         }
-        PeerInfo info;
-        info.setStartIndex(start);
-        info.setEndIndex(end-1);
-        info.setCompletedCount(0);
-        info.setFilePath(m_dlRequest.filePath());
-        infoList.append (info);
+    }
+    PeerInfoList infoList;
+    if (task.isEmpty()) { //download new file
+        int threadCount = m_dlRequest.preferThreadCount ();
+        quint64 step = m_totalSize/threadCount;
+        quint64 start = -step;
+        quint64 end = 0;
+        for (int index=1; index <= threadCount; ++index) {
+            end += step;
+            start += step;
+            if (index == threadCount) {
+                end = m_totalSize;
+            }
+            PeerInfo info;
+            info.setStartIndex(start);
+            info.setEndIndex(end-1);
+            info.setCompletedCount(0);
+            info.setFilePath(m_dlRequest.filePath());
+            infoList.append (info);
+        }
+        task.setDownloadUrl(m_dlRequest.downloadUrl().toString());
+        task.setFilePath(m_dlRequest.filePath());
+        task.setPeerList(infoList);
+        task.setReadySize(0);
+        task.setRequestUrl(m_dlRequest.requestUrl().toString());
+        task.setTotalSize(m_totalSize);
+        task.setUid(m_uid);
+        m_transDB->appendTaskInfo(task);
+        m_transDB->flush();
+    } else { // continue to download
+        infoList = task.peerList();
+        m_dlRequest.setPreferThreadCount(infoList.size());
     }
 
     int index = 0;
@@ -179,6 +236,12 @@ void DLTask::initPeers()
     }
     if (!m_workerThread->isRunning())
         m_workerThread->start();
+}
+
+void DLTask::calculateUID()
+{
+    QString str = m_dlRequest.requestUrl().toString() + m_dlRequest.filePath() + m_dlRequest.downloadUrl().toString();
+    m_uid = QString(QCryptographicHash::hash(str.toUtf8(), QCryptographicHash::Md5).toHex());
 }
 
 

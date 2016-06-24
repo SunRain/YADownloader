@@ -48,7 +48,7 @@ public:
     static QStringList keys() {
         QStringList list;
         list << TASK_INFO_DL_URL
-             << TASK_INFO_FILE_PATHk
+             << TASK_INFO_FILE_PATH
              << TASK_INFO_PEER_LIST
              << TASK_INFO_READY_SIZE
              << TASK_INFO_REQ_URL

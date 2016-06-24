@@ -2,8 +2,8 @@
 
 namespace YADownloader {
 
-DLTaskImpl::DLTaskImpl(const DLRequest &request, QObject *parent)
-    : DLTask(request, parent)
+DLTaskImpl::DLTaskImpl(const DLRequest &request, DLTransmissionDatabase *db, QObject *parent)
+    : DLTask(db, request, parent)
 {
 }
 
