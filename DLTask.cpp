@@ -83,7 +83,7 @@ DLTask::~DLTask()
 
 void DLTask::setRequest(const DLRequest &request) {
     m_dlRequest = request;
-    QString str = request.requestUrl() + request.filePath();
+    QString str = request.requestUrl().toString() + request.filePath();
     m_uid = QCryptographicHash::hash(str.toUtf8(), QCryptographicHash::Md5);
 }
 
