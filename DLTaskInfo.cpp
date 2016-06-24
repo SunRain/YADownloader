@@ -1,108 +1,143 @@
 #include "DLTaskInfo.h"
 
+#include <QSharedData>
+
+#include "DLTaskPeer.h"
+
 namespace YADownloader {
 
+class DLTaskInfoPriv : public QSharedData
+{
+public:
+    DLTaskInfoPriv()
+        : uid(QString())
+        , downloadUrl(QString())
+        , requestUrl(QString())
+        , filePath(QString())
+        , totalSize(0)
+        , readySize(0)
+    {
+    }
+    virtual ~DLTaskInfoPriv() {}
+
+    QString uid;
+    QString downloadUrl;
+    QString requestUrl;
+    QString filePath;
+    quint64 totalSize;
+    quint64 readySize;
+    PeerInfoList peerList;
+};
+
 DLTaskInfo::DLTaskInfo()
+    : d(new DLTaskInfoPriv)
 {
 
+}
+
+DLTaskInfo::DLTaskInfo(const DLTaskInfo &other)
+    : d(other.d)
+{
+
+}
+
+bool DLTaskInfo::operator ==(const DLTaskInfo &other) const
+{
+    return d.data()->downloadUrl == other.d.data()->downloadUrl
+            && d.data()->peerList == other.d.data()->peerList
+            && d.data()->readySize == other.d.data()->readySize
+            && d.data()->requestUrl == other.d.data()->requestUrl
+            && d.data()->totalSize == other.d.data()->totalSize
+            && d.data()->uid == other.d.data()->uid
+            && d.data()->filePath == other.d.data()->filePath;
+}
+
+bool DLTaskInfo::operator !=(const DLTaskInfo &other)
+{
+    return !operator ==(other);
+}
+
+DLTaskInfo &DLTaskInfo::operator =(const DLTaskInfo &other)
+{
+    if (this != &other)
+        d.operator =(other.d);
+    return *this;
+}
+
+bool DLTaskInfo::hasSameIdentifier(const PeerInfo &other)
+{
+    //TODO
+    return false;
 }
 
 QString DLTaskInfo::uid() const
 {
-    return m_uid;
+    return d.data()->uid;
 }
 
 QString DLTaskInfo::downloadUrl() const
 {
-    return m_downloadUrl;
+    return d.data()->downloadUrl;
 }
 
 QString DLTaskInfo::requestUrl() const
 {
-    return m_requestUrl;
+    return d.data()->requestUrl;
 }
 
-QString DLTaskInfo::totalSize() const
+QString DLTaskInfo::filePath() const
 {
-    return m_totalSize;
+    return d.data()->filePath;
 }
 
-QString DLTaskInfo::readySize() const
+quint64 DLTaskInfo::totalSize() const
 {
-    return m_readySize;
+    return d.data()->totalSize;
 }
 
-PeerInfo DLTaskInfo::peerList() const
+quint64 DLTaskInfo::readySize() const
 {
-    return m_peerList;
+    return d.data()->readySize;
 }
 
-int DLTaskInfo::peerSize() const
+PeerInfoList DLTaskInfo::peerList() const
 {
-    return m_peerSize;
+    return d.data()->peerList;
 }
 
-void DLTaskInfo::setUid(QString uid)
+void DLTaskInfo::setUid(const QString &uid)
 {
-    if (m_uid == uid)
-        return;
-
-    m_uid = uid;
-    emit uidChanged(uid);
+    d.data()->uid = uid;
 }
 
-void DLTaskInfo::setDownloadUrl(QString downloadUrl)
+void DLTaskInfo::setDownloadUrl(const QString &downloadUrl)
 {
-    if (m_downloadUrl == downloadUrl)
-        return;
-
-    m_downloadUrl = downloadUrl;
-    emit downloadUrlChanged(downloadUrl);
+    d.data()->downloadUrl = downloadUrl;
 }
 
-void DLTaskInfo::setRequestUrl(QString requestUrl)
+void DLTaskInfo::setRequestUrl(const QString &requestUrl)
 {
-    if (m_requestUrl == requestUrl)
-        return;
-
-    m_requestUrl = requestUrl;
-    emit requestUrlChanged(requestUrl);
+    d.data()->requestUrl = requestUrl;
 }
 
-void DLTaskInfo::setTotalSize(QString totalSize)
+void DLTaskInfo::setFilePath(const QString &filePath)
 {
-    if (m_totalSize == totalSize)
-        return;
-
-    m_totalSize = totalSize;
-    emit totalSizeChanged(totalSize);
+    d.data()->filePath = filePath;
 }
 
-void DLTaskInfo::setReadySize(QString readySize)
+void DLTaskInfo::setTotalSize(quint64 totalSize)
 {
-    if (m_readySize == readySize)
-        return;
-
-    m_readySize = readySize;
-    emit readySizeChanged(readySize);
+    d.data()->totalSize = totalSize;
 }
 
-void DLTaskInfo::setPeerList(QVariantList peerList)
+void DLTaskInfo::setReadySize(quint64 readySize)
 {
-    if (m_peerList == peerList)
-        return;
-
-    m_peerList = peerList;
-    emit peerListChanged(peerList);
+    d.data()->readySize = readySize;
 }
 
-void DLTaskInfo::setPeerSize(int peerSize)
+void DLTaskInfo::setPeerList(const PeerInfoList &peerList)
 {
-    if (m_peerSize == peerSize)
-        return;
-
-    m_peerSize = peerSize;
-    emit peerSizeChanged(peerSize);
+    d.data()->peerList = peerList;
 }
 
 } //YADownloader
