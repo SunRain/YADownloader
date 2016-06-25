@@ -208,12 +208,17 @@ void DLTaskPeer::setDoneCount(const quint64 &doneCount) {
     m_doneCount = doneCount;
 }
 
-QNetworkReply *DLTaskPeer::reply() {
-    return m_reply;
-}
+//QNetworkReply *DLTaskPeer::reply() {
+//    return m_reply;
+//}
 
 int DLTaskPeer::index() {
     return m_index;
+}
+
+void DLTaskPeer::abort()
+{
+    m_reply->abort();
 }
 
 

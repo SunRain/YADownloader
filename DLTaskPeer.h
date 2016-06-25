@@ -78,11 +78,11 @@ public:
 
     quint64 doneCount() const;
     void setDoneCount(const quint64 &doneCount);
-    QNetworkReply *reply();
+//    QNetworkReply *reply();
     int index();
 
 public slots:
-
+    void abort();
 private:
     QFile *m_file;
     QNetworkReply *m_reply;

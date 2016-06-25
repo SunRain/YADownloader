@@ -78,20 +78,20 @@ DLTask::DLTask(DLTransmissionDatabase *db, const DLRequest &request, QObject *pa
     connect (m_workerThread, &QThread::finished, [&]() {
         qDebug()<<Q_FUNC_INFO<<"<<<<<<<<<<<<<<<<<";
         foreach (DLTaskPeer *p, m_peerList) {
-            p->reply()->abort();
-            p->deleteLater ();
+            p->abort();
+            p->deleteLater();
         }
     });
 
-    connect (m_networkMgr, &QNetworkAccessManager::finished,
-             [&](QNetworkReply *reply) {
-        qDebug()<<Q_FUNC_INFO<<">>>>>>>>>>>>>>>>>>>>>>>";
-        foreach (DLTaskPeer *r, m_peerList) {
-            if (r->reply () == reply) {
-                qDebug()<<Q_FUNC_INFO<<"found peer "<<r->index ()<<" remain file size "<<reply->size ();
-            }
-        }
-    });
+//    connect (m_networkMgr, &QNetworkAccessManager::finished,
+//             [&](QNetworkReply *reply) {
+//        qDebug()<<Q_FUNC_INFO<<">>>>>>>>>>>>>>>>>>>>>>>";
+//        foreach (DLTaskPeer *r, m_peerList) {
+//            if (r->reply () == reply) {
+//                qDebug()<<Q_FUNC_INFO<<"found peer "<<r->index ()<<" remain file size "<<reply->size ();
+//            }
+//        }
+//    });
 
     calculateUID();
 }
