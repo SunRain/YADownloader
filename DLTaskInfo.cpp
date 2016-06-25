@@ -25,7 +25,7 @@ public:
     QString downloadUrl;
     QString requestUrl;
     QString filePath;
-    quint64 totalSize;
+    qint64 totalSize;
     quint64 readySize;
     PeerInfoList peerList;
 };
@@ -77,7 +77,7 @@ bool DLTaskInfo::hasSameIdentifier(const PeerInfo &other)
     return false;
 }
 
-QString DLTaskInfo::uid() const
+QString DLTaskInfo::hash() const
 {
     return d.data()->uid;
 }
@@ -97,7 +97,7 @@ QString DLTaskInfo::filePath() const
     return d.data()->filePath;
 }
 
-quint64 DLTaskInfo::totalSize() const
+qint64 DLTaskInfo::totalSize() const
 {
     return d.data()->totalSize;
 }
@@ -112,9 +112,9 @@ PeerInfoList DLTaskInfo::peerList() const
     return d.data()->peerList;
 }
 
-void DLTaskInfo::setUid(const QString &uid)
+void DLTaskInfo::setHash(const QString &hash)
 {
-    d.data()->uid = uid;
+    d.data()->uid = hash;
 }
 
 void DLTaskInfo::setDownloadUrl(const QString &downloadUrl)
@@ -132,7 +132,7 @@ void DLTaskInfo::setFilePath(const QString &filePath)
     d.data()->filePath = filePath;
 }
 
-void DLTaskInfo::setTotalSize(quint64 totalSize)
+void DLTaskInfo::setTotalSize(qint64 totalSize)
 {
     d.data()->totalSize = totalSize;
 }
@@ -144,28 +144,29 @@ void DLTaskInfo::setReadySize(quint64 readySize)
 
 void DLTaskInfo::setPeerList(const PeerInfoList &peerList)
 {
-    d.data()->peerList = peerList;
+    d.data()->peerList.clear();
+    d.data()->peerList.append(peerList);
 }
 
 QDebug operator <<(QDebug dbg, const YADownloader::DLTaskInfo &info)
 {
-    QVariantMap map;
-    map.insert(TASK_INFO_UID, info.uid());
-    map.insert(TASK_INFO_FILE_PATH, info.filePath());
-    map.insert(TASK_INFO_DL_URL, info.downloadUrl());
-    map.insert(TASK_INFO_REQ_URL, info.requestUrl());
-    map.insert(TASK_INFO_READY_SIZE, info.readySize());
-    map.insert(TASK_INFO_TOTAL_SIZE, info.totalSize());
+    QVariantHash hash;
+    hash.insert(TASK_INFO_UID, info.hash());
+    hash.insert(TASK_INFO_FILE_PATH, info.filePath());
+    hash.insert(TASK_INFO_DL_URL, info.downloadUrl());
+    hash.insert(TASK_INFO_REQ_URL, info.requestUrl());
+    hash.insert(TASK_INFO_READY_SIZE, info.readySize());
+    hash.insert(TASK_INFO_TOTAL_SIZE, info.totalSize());
     QVariantList list;
     foreach (PeerInfo p, info.peerList()) {
-        QVariantMap map;
-        map.insert(TASK_PEER_START_IDX, p.startIndex());
-        map.insert(TASK_PEER_END_IDX, p.endIndex());
-        map.insert(TASK_PEER_COMPLETED_CNT, p.completedCount());
-        list.append(map);
+        QVariantHash hash;
+        hash.insert(TASK_PEER_START_IDX, p.startIndex());
+        hash.insert(TASK_PEER_END_IDX, p.endIndex());
+        hash.insert(TASK_PEER_COMPLETED_CNT, p.dlCompleted());
+        list.append(hash);
     }
-    map.insert(TASK_INFO_PEER_LIST, map);
-    return dbg<<map;
+    hash.insert(TASK_INFO_PEER_LIST, list);
+    return dbg<<hash;
 }
 
 } //YADownloader

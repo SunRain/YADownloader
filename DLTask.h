@@ -5,6 +5,7 @@
 #include <QList>
 #include "yadownloader_global.h"
 #include "DLRequest.h"
+#include "DLTaskInfo.h"
 
 class QNetworkAccessManager;
 class QNetworkReply;
@@ -36,7 +37,7 @@ public:
 
 public slots:
     void start();
-    //    void stop();
+    void abort();
     //    void suspend();
     //    void resume();
 
@@ -52,11 +53,12 @@ protected:
 
 signals:
     void initFileSize(qint64 fileSize);
-
+    void downloadProgress(qint64 bytesReceived, qint64 bytesTotal);
 private:
 //    void initFileSize();
     void initPeers();
     void calculateUID();
+    void saveInfo();
 
 private:
     QNetworkAccessManager *m_networkMgr;
@@ -71,14 +73,18 @@ private:
 
     DLRequest m_dlRequest;
     TaskStatus m_DLStatus;
+    DLTaskInfo m_dlTaskInfo;
 
+    QHash<QString, quint64> m_dlCompletedHash;//completedCount
     QString m_uid;
 
     int m_initHeaderCounts;
-    int m_peerCount;            //分解的数据块量
-    int m_peerSize;             //每个数据块大小
+//    int m_peerCount;            //分解的数据块量
+//    int m_peerSize;             //每个数据块大小
     qint64 m_totalSize;        //文件总大小
-    quint64 m_downloadedSize;   //文件已经下载的大小
+    qint64 m_downloadedSize;   //文件已经下载的大小
+//    qint64 m_dlBytesWhenStarted; //had beend downloadeded size when started
+    qint64 m_dlBytesReceived; //downloaded size since start
 };
 
 

@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QReadWriteLock>
+#include <QMutex>
 #include <QSharedPointer>
 #include "yadownloader_global.h"
 
@@ -53,11 +54,13 @@ public:
     QString filePath() const;
     void setFilePath(const QString &value);
 
-    quint64 completedCount() const;
     void setCompletedCount(const quint64 &value);
 
     quint64 dlCompleted() const;
     quint64 rangeStart() const;
+
+protected:
+    quint64 completedCount() const;
 
 private:
     QSharedPointer<PeerInfoPriv> d;
@@ -65,33 +68,43 @@ private:
 
 QDebug operator <<(QDebug dbg, const PeerInfo& info);
 
+class DLTaskStateDispatch;
 class YADOWNLOADERSHARED_EXPORT DLTaskPeer : public QObject
 {
     Q_OBJECT
 public:
-    explicit DLTaskPeer(int index, const PeerInfo &info, QNetworkReply *reply, QObject *parent = 0);
+    explicit DLTaskPeer(DLTaskStateDispatch *dispatch, const PeerInfo &info, QNetworkReply *reply, QObject *parent = 0);
     virtual ~DLTaskPeer();
 
     PeerInfo info() const;
-    QByteArray hash() const;
+    QString hash() const;
     QUrl downloadUrl() const;
 
-    quint64 doneCount() const;
+    qint64 doneCount() const;
+
+protected:
     void setDoneCount(const quint64 &doneCount);
 //    QNetworkReply *reply();
-    int index();
+//    int index();
+
+//signals:
+//    void downloadProgress(qint64 bytesReceived, qint64 bytesTotal);
 
 public slots:
     void abort();
 private:
     QFile *m_file;
     QNetworkReply *m_reply;
+    DLTaskStateDispatch *m_dispatch;
 
     PeerInfo m_peerInfo;
-    QReadWriteLock m_lock;
+    QReadWriteLock m_fileLocker;
+//    QMutex m_locker;
 
-    int m_index;
-    quint64 m_doneCount;
+    QString m_hash;
+
+//    int m_index;
+    qint64 m_doneCount;
 };
 
 typedef QList<DLTaskPeer*> PeerList;

@@ -24,7 +24,12 @@ public:
     bool operator !=(const DLTaskInfo &other);
     DLTaskInfo &operator =(const DLTaskInfo &other);
 
+    ///
+    /// \brief isEmpty
+    /// \return true if downloadUrl or requestUrl or filePath or peerList is empty
+    ///
     bool isEmpty() const;
+
     //TODO
     ///
     /// \brief hasSameIdentifier
@@ -34,7 +39,7 @@ public:
     ///
     bool hasSameIdentifier(const PeerInfo &other);
 
-    QString uid() const;
+    QString hash() const;
 
     QString downloadUrl() const;
 
@@ -42,13 +47,13 @@ public:
 
     QString filePath() const;
 
-    quint64 totalSize() const;
+    qint64 totalSize() const;
 
     quint64 readySize() const;
 
     PeerInfoList peerList() const;
 
-    void setUid(const QString &uid);
+    void setHash(const QString &hash);
 
     void setDownloadUrl(const QString &downloadUrl);
 
@@ -56,7 +61,7 @@ public:
 
     void setFilePath(const QString &filePath);
 
-    void setTotalSize(quint64 totalSize);
+    void setTotalSize(qint64 totalSize);
 
     void setReadySize(quint64 readySize);
 

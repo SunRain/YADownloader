@@ -10,6 +10,7 @@
 #include <QNetworkRequest>
 
 #include "DLTransmissionDatabaseKeys.h"
+#include "DLTaskStateDispatch.h"
 
 namespace YADownloader {
 
@@ -118,79 +119,112 @@ quint64 PeerInfo::rangeStart() const {
     return d.data()->startIndex + dlCompleted();
 }
 
+/**************************************************************************************************
+ *                                                                                                *
+ **************************************************************************************************/
+
 QDebug operator <<(QDebug dbg, const YADownloader::PeerInfo &info)
 {
 //    return dbg<<QString("Peer [start=%1],[end=%2],[complete=%3], [path=%4]")
 //                .arg(info.startIndex()).arg(info.endIndex())
 //                .arg(QString::number(info.completedCount())).arg(info.filePath());
-    QVariantMap map;
-    map.insert(TASK_PEER_START_IDX, info.startIndex());
-    map.insert(TASK_PEER_END_IDX, info.endIndex());
-    map.insert(TASK_PEER_COMPLETED_CNT, info.completedCount());
-    return dbg<<map;
+    QVariantHash hash;
+    hash.insert(TASK_PEER_START_IDX, info.startIndex());
+    hash.insert(TASK_PEER_END_IDX, info.endIndex());
+    hash.insert(TASK_PEER_COMPLETED_CNT, info.dlCompleted());
+    return dbg<<hash;
 }
 
-DLTaskPeer::DLTaskPeer(int index, const PeerInfo &info, QNetworkReply *reply, QObject *parent)
+/**************************************************************************************************
+ *                                                                                                *
+ **************************************************************************************************/
+
+DLTaskPeer::DLTaskPeer(DLTaskStateDispatch *dispatch, const PeerInfo &info, QNetworkReply *reply, QObject *parent)
     : QObject(parent)
     , m_file(new QFile(this))
-    , m_peerInfo(info)
     , m_reply(reply)
-    , m_index(index)
+    , m_dispatch(dispatch)
+    , m_peerInfo(info)
     , m_doneCount(0)
 {
-    qDebug()<<Q_FUNC_INFO<<"peer index ["<<m_index<<"] for peer "<<m_peerInfo;
-
     m_file->setFileName (m_peerInfo.filePath() + PEER_TAG);
     if (!m_file->open (QIODevice::ReadWrite)) {
-        qDebug()<<Q_FUNC_INFO<<"open error for "<<m_file->fileName ();
+        qCritical()<<Q_FUNC_INFO<<"open error for "<<m_file->fileName ();
     }
+
+    QString data = QString::number(m_peerInfo.startIndex())
+            + QString::number(m_peerInfo.endIndex())
+            + m_reply->request().url().toString();
+    m_hash = QString(QCryptographicHash::hash(data.toUtf8(), QCryptographicHash::Sha1).toHex());
+
+    qDebug()<<Q_FUNC_INFO<<"peer hash ["<<m_hash<<"] for peer "<<m_peerInfo;
 
     connect (m_reply, &QNetworkReply::readyRead, [&](){
         if (m_reply->bytesAvailable () > 4096) {
-            qDebug()<<Q_FUNC_INFO<<"index ["<<m_index<<"] readyRead bytes "<<(m_reply)->bytesAvailable ();
+//            qDebug()<<Q_FUNC_INFO<<"hash ["<<m_hash<<"] readyRead bytes "<<(m_reply)->bytesAvailable ();
             QByteArray qba = m_reply->readAll ();
             quint64 pos = m_peerInfo.rangeStart ()+doneCount ();
-            qDebug()<<Q_FUNC_INFO<<"index ["<<m_index<<"] file seek to "<<pos;
-            m_lock.lockForWrite ();
-            qDebug()<<Q_FUNC_INFO<<"index ["<<m_index<<"] lockForWrite ";
+//            qDebug()<<Q_FUNC_INFO<<"hash ["<<m_hash<<"] file seek to "<<pos;
+            m_fileLocker.lockForWrite ();
+//            qDebug()<<Q_FUNC_INFO<<"hash ["<<m_hash<<"] lockForWrite ";
             m_file->seek (pos);
             m_file->write (qba);
-            m_lock.unlock ();
-            qDebug()<<Q_FUNC_INFO<<"index ["<<m_index<<"] setDoneCount "<<doneCount() + qba.size();
-            setDoneCount (doneCount () + qba.size ());
+            m_fileLocker.unlock ();
+            setDoneCount(doneCount() + qba.size());
+//            qDebug()<<Q_FUNC_INFO<<"++++ hash "<<m_hash<<" DoneCount "<<doneCount()
+//                               <<" total "<<m_peerInfo.endIndex()-m_peerInfo.startIndex()+1;
         }
     });
 
     connect (m_reply, &QNetworkReply::finished, [&]() {
-        qDebug()<<Q_FUNC_INFO<<"finished index ["<<m_index<<"] readyRead bytes "<<(m_reply)->bytesAvailable ();
+//        qDebug()<<Q_FUNC_INFO<<"finished hash ["<<m_hash<<"] readyRead bytes "<<(m_reply)->bytesAvailable ();
         QByteArray qba = m_reply->readAll ();
         quint64 pos = m_peerInfo.rangeStart ()+doneCount ();
-        qDebug()<<Q_FUNC_INFO<<"file seek to "<<pos;
-        m_lock.lockForWrite ();
+//        qDebug()<<Q_FUNC_INFO<<"file seek to "<<pos;
+        m_fileLocker.lockForWrite ();
         m_file->seek (pos);
         m_file->write (qba);
-        m_lock.unlock ();
-        setDoneCount (doneCount () + qba.size ());
+        m_fileLocker.unlock ();
+        setDoneCount(doneCount () + qba.size ());
         m_file->flush ();
         m_file->close ();
     });
+
+    connect(m_reply, &QNetworkReply::downloadProgress, [&](qint64 bytesReceived, qint64 bytesTotal) {
+//        qDebug()<<Q_FUNC_INFO<<"---- hash "<<m_hash<<" DoneCount "<<doneCount()<<" bytesReceived "<<bytesReceived
+//                           <<" total "<<bytesTotal;
+        m_dispatch->dispatchDownloadProgress(m_hash, bytesReceived, doneCount(), bytesTotal);
+    });
+//    connect(m_reply, &QNetworkReply::downloadProgress, this, &DLTaskPeer::downloadProgress);
 }
 
 DLTaskPeer::~DLTaskPeer()
 {
-
+    qDebug()<<Q_FUNC_INFO<<"  "<<m_hash;
+    if (m_reply) {
+        if (!m_reply->isFinished()) {
+            m_reply->abort();
+        }
+        QObject::disconnect(m_reply, 0, 0, 0);
+        m_reply->deleteLater();
+        m_reply = nullptr;
+    }
+    if (m_file) {
+        m_file->flush();
+        m_file->close();
+        m_file->deleteLater();
+    }
+    m_file = nullptr;
+    m_dispatch = nullptr;
 }
 
 PeerInfo DLTaskPeer::info() const {
     return m_peerInfo;
 }
 
-QByteArray DLTaskPeer::hash() const
+QString DLTaskPeer::hash() const
 {
-    QString data = QString::number(m_peerInfo.startIndex())
-            + QString::number(m_peerInfo.endIndex())
-            + m_reply->request().url().toString();
-    return QCryptographicHash::hash (data.toUtf8 (), QCryptographicHash::Sha1);
+    return m_hash;
 }
 
 QUrl DLTaskPeer::downloadUrl() const
@@ -200,7 +234,7 @@ QUrl DLTaskPeer::downloadUrl() const
     return m_reply->request ().url ();
 }
 
-quint64 DLTaskPeer::doneCount() const {
+qint64 DLTaskPeer::doneCount() const {
     return m_doneCount;
 }
 
@@ -212,9 +246,9 @@ void DLTaskPeer::setDoneCount(const quint64 &doneCount) {
 //    return m_reply;
 //}
 
-int DLTaskPeer::index() {
-    return m_index;
-}
+//int DLTaskPeer::index() {
+//    return m_index;
+//}
 
 void DLTaskPeer::abort()
 {
