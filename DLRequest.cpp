@@ -113,6 +113,7 @@ QUrl DLRequest::requestUrl() const
 void DLRequest::setRequestUrl(const QUrl &url)
 {
     d.data()->requestUrl = sortUrlQuery(url);
+    d.data()->downloadUrl = d.data()->requestUrl;
 }
 
 QString DLRequest::savePath() const
