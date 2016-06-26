@@ -231,8 +231,12 @@ void DLTask::initPeers()
                 req.setRawHeader(key, m_dlRequest.rawHeaders().value(key, QByteArray()));
             }
         }
-        QString range = QString("bytes=%1-%2").arg(info.rangeStart()).arg(info.endIndex());
-        req.setRawHeader ("Range", range.toUtf8 ());
+        /// if Range is not supported by remote server or we can't get remote file size,
+        /// we DISABLE resume downloading
+        if (m_totalSize > 0) {
+            QString range = QString("bytes=%1-%2").arg(info.rangeStart()).arg(info.endIndex());
+            req.setRawHeader ("Range", range.toUtf8 ());
+        }
         req.setRawHeader ("Connection", "keep-alive");
 
         QNetworkReply *tmp = m_networkMgr->get (req);
