@@ -162,42 +162,61 @@ DLTaskPeer::DLTaskPeer(DLTaskStateDispatch *dispatch, const DLTaskPeerInfo &info
     qDebug()<<Q_FUNC_INFO<<"peer hash ["<<m_hash<<"] for peer "<<m_peerInfo<<" start pos "<<info.rangeStart();
 
     connect (m_reply, &QNetworkReply::readyRead, [&](){
-        if (m_reply->bytesAvailable () > 4096) {
-//            qDebug()<<Q_FUNC_INFO<<"hash ["<<m_hash<<"] readyRead bytes "<<(m_reply)->bytesAvailable ();
-            QByteArray qba = m_reply->readAll ();
-            quint64 pos = m_peerInfo.rangeStart ()+doneCount ();
-//            qDebug()<<Q_FUNC_INFO<<"  hash ["<<m_hash<<"] file seek to "<<pos<<" write "<<qba.size();
+        int statusCode = m_reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        //        qDebug()<<Q_FUNC_INFO<<"readyRead hash ["<<m_hash<<"] statusCode "<<statusCode;
+
+        ///TODO check statusCode to see if download succeed or url redirect
+        if (statusCode == 200 || statusCode == 201 || statusCode == 206) {
+            if (m_reply->bytesAvailable () > 4096) {
+                //            qDebug()<<Q_FUNC_INFO<<"hash ["<<m_hash<<"] readyRead bytes "<<(m_reply)->bytesAvailable ();
+                QByteArray qba = m_reply->readAll ();
+                quint64 pos = m_peerInfo.rangeStart ()+doneCount ();
+                //            qDebug()<<Q_FUNC_INFO<<"  hash ["<<m_hash<<"] file seek to "<<pos<<" write "<<qba.size();
+                m_fileLocker.lockForWrite ();
+                //            qDebug()<<Q_FUNC_INFO<<"hash ["<<m_hash<<"] lockForWrite ";
+                m_file->seek (pos);
+                m_file->write (qba, qba.size());
+                m_file->flush();
+                m_fileLocker.unlock ();
+                setDoneCount(doneCount() + qba.size());
+                m_dispatch->dispatchDownloadProgress(m_hash, qba.size(), doneCount(), m_peerSize);
+                //            qDebug()<<Q_FUNC_INFO<<"++++ hash "<<m_hash<<" DoneCount "<<doneCount()
+                //                               <<" total "<<m_peerInfo.endIndex()-m_peerInfo.startIndex()+1;
+            }
+        } else {
+            qWarning()<<Q_FUNC_INFO<<QString("Download peer [%1] Http header error!").arg(m_hash);
             m_fileLocker.lockForWrite ();
-//            qDebug()<<Q_FUNC_INFO<<"hash ["<<m_hash<<"] lockForWrite ";
-            m_file->seek (pos);
-            m_file->write (qba, qba.size());
             m_file->flush();
             m_fileLocker.unlock ();
-            setDoneCount(doneCount() + qba.size());
-            m_dispatch->dispatchDownloadProgress(m_hash, qba.size(), doneCount(), m_peerSize);
-//            qDebug()<<Q_FUNC_INFO<<"++++ hash "<<m_hash<<" DoneCount "<<doneCount()
-//                               <<" total "<<m_peerInfo.endIndex()-m_peerInfo.startIndex()+1;
+            m_file->close();
         }
     });
 
     connect (m_reply, &QNetworkReply::finished, [&]() {
         int statusCode = m_reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        qDebug()<<Q_FUNC_INFO<<"finished hash ["<<m_hash<<"] statusCode "<<statusCode;
+        //        qDebug()<<Q_FUNC_INFO<<"finished hash ["<<m_hash<<"] statusCode "<<statusCode;
 
         //TODO check statusCode to see if download succeed or url redirect
-
-        QByteArray qba = m_reply->readAll ();
-        quint64 pos = m_peerInfo.rangeStart ()+doneCount ();
-//        qDebug()<<Q_FUNC_INFO<<"hash ["<<m_hash<<"] file seek to "<<pos<<" write "<<qba.size();
-        m_fileLocker.lockForWrite ();
-        m_file->seek (pos);
-        m_file->write (qba);
-        m_file->flush ();
-//        qDebug()<<Q_FUNC_INFO<<"  now file size "<<m_file->size();
-        m_fileLocker.unlock ();
-        setDoneCount(doneCount () + qba.size ());
-        m_file->close ();
-        m_dispatch->dispatchDownloadProgress(m_hash, qba.size(), doneCount(), m_peerSize);
+        if (statusCode == 200 || statusCode == 201 || statusCode == 206) {
+            QByteArray qba = m_reply->readAll ();
+            quint64 pos = m_peerInfo.rangeStart ()+doneCount ();
+            //        qDebug()<<Q_FUNC_INFO<<"hash ["<<m_hash<<"] file seek to "<<pos<<" write "<<qba.size();
+            m_fileLocker.lockForWrite ();
+            m_file->seek (pos);
+            m_file->write (qba);
+            m_file->flush ();
+            //        qDebug()<<Q_FUNC_INFO<<"  now file size "<<m_file->size();
+            m_fileLocker.unlock ();
+            setDoneCount(doneCount () + qba.size ());
+            m_file->close ();
+            m_dispatch->dispatchDownloadProgress(m_hash, qba.size(), doneCount(), m_peerSize);
+        } else {
+            qWarning()<<Q_FUNC_INFO<<QString("Download peer [%1] Http header error!").arg(m_hash);
+            m_fileLocker.lockForWrite ();
+            m_file->flush();
+            m_fileLocker.unlock ();
+            m_file->close();
+        }
     });
 }
 
