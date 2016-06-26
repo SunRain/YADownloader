@@ -59,6 +59,8 @@ public:
     void setDownloadUrl(const QUrl &downloadUrl);
 
 private:
+    QUrl sortUrlQuery(const QUrl &url);
+private:
     QSharedPointer<DLRequestPriv> d;
 };
 

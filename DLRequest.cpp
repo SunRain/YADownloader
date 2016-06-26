@@ -40,8 +40,8 @@ DLRequest::DLRequest(const QUrl &url, const QString &savePath, const QString &sa
 //    , m_saveName(saveName)
 //    , m_preferThreadCount(1)
 {
-    d.data()->requestUrl = url;
-    d.data()->downloadUrl = url;
+    d.data()->requestUrl = sortUrlQuery(url);
+    d.data()->downloadUrl = sortUrlQuery(url);
     d.data()->savePath = savePath;
     d.data()->saveName = saveName;
 }
@@ -112,7 +112,7 @@ QUrl DLRequest::requestUrl() const
 
 void DLRequest::setRequestUrl(const QUrl &url)
 {
-    d.data()->requestUrl = url;
+    d.data()->requestUrl = sortUrlQuery(url);
 }
 
 QString DLRequest::savePath() const
@@ -152,7 +152,17 @@ QUrl DLRequest::downloadUrl() const
 
 void DLRequest::setDownloadUrl(const QUrl &downloadUrl)
 {
-    d.data()->downloadUrl = downloadUrl;
+    d.data()->downloadUrl = sortUrlQuery(downloadUrl);
+}
+
+QUrl DLRequest::sortUrlQuery(const QUrl &url)
+{
+    QStringList list = url.toString().split("?");
+    if (list.isEmpty() || list.size() != 2)
+        return url;
+    QStringList querylist = list.last().split("&");
+    qStableSort(querylist.begin(), querylist.end(), qGreater<QString>());
+    return QUrl(QString("%1?%2").arg(list.at(0)).arg(querylist.join("&")));
 }
 
 } //
