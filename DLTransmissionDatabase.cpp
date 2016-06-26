@@ -32,7 +32,7 @@ DLTransmissionDatabase::~DLTransmissionDatabase()
 
 void DLTransmissionDatabase::appendTaskInfo(const DLTaskInfo &info)
 {
-    m_infoHash.insert(info.hash(), info);
+    m_infoHash.insert(info.requestUrl(), info);
 }
 
 DLTaskInfoList DLTransmissionDatabase::list() const
@@ -73,12 +73,12 @@ void DLTransmissionDatabase::loadFromLocalStorage()
         info.setReadySize(va.value(TASK_INFO_READY_SIZE).toULongLong());
         info.setRequestUrl(va.value(TASK_INFO_REQ_URL).toString());
         info.setTotalSize(va.value(TASK_INFO_TOTAL_SIZE).toULongLong());
-        info.setHash(va.value(TASK_INFO_UID).toString());
+//        info.setHash(va.value(TASK_INFO_UID).toString());
         QVariantList vaList = va.value(TASK_INFO_PEER_LIST).toList();
-        PeerInfoList plist;
+        DLTaskPeerInfoList plist;
         foreach (QVariant hh, vaList) {
             QVariantMap h = hh.toMap();
-            PeerInfo p;
+            DLTaskPeerInfo p;
             p.setStartIndex(h.value(TASK_PEER_START_IDX).toString().toULongLong());
             p.setEndIndex(h.value(TASK_PEER_END_IDX).toString().toULongLong());
             p.setCompletedCount(h.value(TASK_PEER_COMPLETED_CNT).toString().toULongLong());
@@ -86,7 +86,7 @@ void DLTransmissionDatabase::loadFromLocalStorage()
             plist.append(p);
         }
         info.setPeerList(plist);
-        m_infoHash.insert(info.hash(), info);
+        m_infoHash.insert(info.requestUrl(), info);
     }
     file.close();
 }
@@ -98,14 +98,14 @@ void DLTransmissionDatabase::saveToLocalStorage()
     foreach (QString key, m_infoHash.keys()) {
         DLTaskInfo info = m_infoHash.value(key);
         QVariantHash top;
-        top.insert(TASK_INFO_UID, info.hash());
+//        top.insert(TASK_INFO_UID, info.hash());
         top.insert(TASK_INFO_DL_URL, info.downloadUrl());
         top.insert(TASK_INFO_REQ_URL, info.requestUrl());
         top.insert(TASK_INFO_FILE_PATH, info.filePath());
         top.insert(TASK_INFO_READY_SIZE, QString::number(info.readySize()));
         top.insert(TASK_INFO_TOTAL_SIZE, QString::number(info.totalSize()));
         QVariantList list;
-        foreach (PeerInfo p, info.peerList()) {
+        foreach (DLTaskPeerInfo p, info.peerList()) {
             QVariantHash hash;
             hash.insert(TASK_PEER_COMPLETED_CNT, QString::number(p.dlCompleted()));
             hash.insert(TASK_PEER_START_IDX, QString::number(p.startIndex()));
@@ -118,7 +118,7 @@ void DLTransmissionDatabase::saveToLocalStorage()
     QJsonDocument doc = QJsonDocument::fromVariant(all);
     QByteArray qba = doc.toJson();
 
-//    qDebug()<<Q_FUNC_INFO<<" value "<<qba;
+    qDebug()<<Q_FUNC_INFO<<" value "<<qba;
 
     QFile file(m_cfgFile);
     if (file.exists()) {

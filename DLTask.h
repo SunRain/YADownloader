@@ -55,9 +55,8 @@ signals:
     void initFileSize(qint64 fileSize);
     void downloadProgress(qint64 bytesReceived, qint64 bytesTotal);
 private:
-//    void initFileSize();
+    QString calculateUID() const;
     void initPeers();
-    void calculateUID();
     void saveInfo();
 
 private:
@@ -76,7 +75,7 @@ private:
     DLTaskInfo m_dlTaskInfo;
 
     QHash<QString, quint64> m_dlCompletedHash;//completedCount
-    QString m_uid;
+//    QString m_uid;
 
     int m_initHeaderCounts;
 //    int m_peerCount;            //分解的数据块量
@@ -85,6 +84,7 @@ private:
     qint64 m_downloadedSize;   //文件已经下载的大小
 //    qint64 m_dlBytesWhenStarted; //had beend downloadeded size when started
     qint64 m_dlBytesReceived; //downloaded size since start
+    qint64 m_dlBytesFileOffest; //downloadeded file size when start
 };
 
 

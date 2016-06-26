@@ -11,39 +11,34 @@ class QFile;
 class QNetworkReply;
 namespace YADownloader {
 
-class PeerInfo;
-typedef QList<PeerInfo> PeerInfoList;
+class DLTaskPeerInfo;
+typedef QList<DLTaskPeerInfo> DLTaskPeerInfoList;
 
 class DLTaskPeer;
-typedef QList<DLTaskPeer*> PeerList;
+typedef QList<DLTaskPeer*> DLTaskPeerList;
 
 
-class PeerInfoPriv;
-class YADOWNLOADERSHARED_EXPORT PeerInfo {
+class DLTaskPeerInfoPriv;
+class YADOWNLOADERSHARED_EXPORT DLTaskPeerInfo {
 public:
-//    quint64 startIndex;     //起始块
-//    quint64 endIndex;       //结束块
-//    quint64 completedCount; //完成块数
-//    QString filePath; //full path of file
-
-    PeerInfo();
-    PeerInfo(const PeerInfo &other);
+    DLTaskPeerInfo();
+    DLTaskPeerInfo(const DLTaskPeerInfo &other);
 
     ///
     /// \brief operator ==
     /// \param other
     /// \return true if has same startIndex endIndex completedCount filePath
     ///
-    bool operator ==(const PeerInfo &other) const;
-    bool operator !=(const PeerInfo &other);
-    PeerInfo &operator =(const PeerInfo &other);
+    bool operator ==(const DLTaskPeerInfo &other) const;
+    bool operator !=(const DLTaskPeerInfo &other);
+    DLTaskPeerInfo &operator =(const DLTaskPeerInfo &other);
 
     ///
     /// \brief hasSameIdentifier
     /// \param other
     /// \return if has same identifier.The identifier tuple is composed of the startIndex endIndex filePath
     ///
-    bool hasSameIdentifier(const PeerInfo &other);
+    bool hasSameIdentifier(const DLTaskPeerInfo &other);
 
     quint64 startIndex() const;
     void setStartIndex(const quint64 &value);
@@ -63,20 +58,20 @@ protected:
     quint64 completedCount() const;
 
 private:
-    QSharedPointer<PeerInfoPriv> d;
+    QSharedPointer<DLTaskPeerInfoPriv> d;
 };
 
-QDebug operator <<(QDebug dbg, const PeerInfo& info);
+QDebug operator <<(QDebug dbg, const DLTaskPeerInfo& info);
 
 class DLTaskStateDispatch;
 class YADOWNLOADERSHARED_EXPORT DLTaskPeer : public QObject
 {
     Q_OBJECT
 public:
-    explicit DLTaskPeer(DLTaskStateDispatch *dispatch, const PeerInfo &info, QNetworkReply *reply, QObject *parent = 0);
+    explicit DLTaskPeer(DLTaskStateDispatch *dispatch, const DLTaskPeerInfo &info, QNetworkReply *reply, QObject *parent = 0);
     virtual ~DLTaskPeer();
 
-    PeerInfo info() const;
+    DLTaskPeerInfo info() const;
     QString hash() const;
     QUrl downloadUrl() const;
 
@@ -84,30 +79,24 @@ public:
 
 protected:
     void setDoneCount(const quint64 &doneCount);
-//    QNetworkReply *reply();
-//    int index();
-
-//signals:
-//    void downloadProgress(qint64 bytesReceived, qint64 bytesTotal);
 
 public slots:
     void abort();
+
 private:
     QFile *m_file;
     QNetworkReply *m_reply;
     DLTaskStateDispatch *m_dispatch;
 
-    PeerInfo m_peerInfo;
+    DLTaskPeerInfo m_peerInfo;
     QReadWriteLock m_fileLocker;
-//    QMutex m_locker;
-
+    QMutex m_locker;
     QString m_hash;
-
-//    int m_index;
     qint64 m_doneCount;
+    qint64 m_peerSize;
 };
 
-typedef QList<DLTaskPeer*> PeerList;
+typedef QList<DLTaskPeer*> DLTaskPeerList;
 
 } //YADownloader
 

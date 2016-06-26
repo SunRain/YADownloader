@@ -14,108 +14,106 @@
 
 namespace YADownloader {
 
-const static QString PEER_TAG = ".peer";
-
-class PeerInfoPriv : public QSharedData
+class DLTaskPeerInfoPriv : public QSharedData
 {
 public:
-    PeerInfoPriv()
+    DLTaskPeerInfoPriv()
         : startIndex(0)
         , endIndex(0)
         , completedCount(0)
         , filePath(QString())
     {
     }
-    virtual ~PeerInfoPriv() {}
+    virtual ~DLTaskPeerInfoPriv() {}
     quint64 startIndex;     //起始块
     quint64 endIndex;       //结束块
     quint64 completedCount; //完成块数
     QString filePath; //full path of file
 };
 
-PeerInfo::PeerInfo()
-    : d(new PeerInfoPriv())
+DLTaskPeerInfo::DLTaskPeerInfo()
+    : d(new DLTaskPeerInfoPriv())
 {
 
 }
 
-PeerInfo::PeerInfo(const PeerInfo &other)
+DLTaskPeerInfo::DLTaskPeerInfo(const DLTaskPeerInfo &other)
     : d(other.d)
 {
 
 }
 
-bool PeerInfo::operator ==(const PeerInfo &other) const {
+bool DLTaskPeerInfo::operator ==(const DLTaskPeerInfo &other) const {
     return d.data()->completedCount == other.d.data()->completedCount
             && d.data()->endIndex == other.d.data()->endIndex
             && d.data()->filePath == other.d.data()->filePath
             && d.data()->startIndex == other.d.data()->startIndex;
 }
 
-bool PeerInfo::operator !=(const PeerInfo &other) {
+bool DLTaskPeerInfo::operator !=(const DLTaskPeerInfo &other) {
     return !operator == (other);
 }
 
-PeerInfo &PeerInfo::operator =(const PeerInfo &other) {
+DLTaskPeerInfo &DLTaskPeerInfo::operator =(const DLTaskPeerInfo &other) {
     if (this != &other)
         d.operator =(other.d);
     return *this;
 }
 
-bool PeerInfo::hasSameIdentifier(const PeerInfo &other)
+bool DLTaskPeerInfo::hasSameIdentifier(const DLTaskPeerInfo &other)
 {
     return d.data()->endIndex == other.d.data()->endIndex
             && d.data()->filePath == other.d.data()->filePath
             && d.data()->startIndex == other.d.data()->startIndex;
 }
 
-quint64 PeerInfo::startIndex() const
+quint64 DLTaskPeerInfo::startIndex() const
 {
     return d.data()->startIndex;
 }
 
-void PeerInfo::setStartIndex(const quint64 &value)
+void DLTaskPeerInfo::setStartIndex(const quint64 &value)
 {
     d.data()->startIndex = value;
 }
 
-quint64 PeerInfo::endIndex() const
+quint64 DLTaskPeerInfo::endIndex() const
 {
     return d.data()->endIndex;
 }
 
-void PeerInfo::setEndIndex(const quint64 &value)
+void DLTaskPeerInfo::setEndIndex(const quint64 &value)
 {
     d.data()->endIndex = value;
 }
 
-QString PeerInfo::filePath() const
+QString DLTaskPeerInfo::filePath() const
 {
     return d.data()->filePath;
 }
 
-void PeerInfo::setFilePath(const QString &value)
+void DLTaskPeerInfo::setFilePath(const QString &value)
 {
     d.data()->filePath = value;
 }
 
-quint64 PeerInfo::completedCount() const
+quint64 DLTaskPeerInfo::completedCount() const
 {
     return d.data()->completedCount;
 }
 
-void PeerInfo::setCompletedCount(const quint64 &value)
+void DLTaskPeerInfo::setCompletedCount(const quint64 &value)
 {
     d.data()->completedCount = value;
 }
 
-quint64 PeerInfo::dlCompleted() const {
+quint64 DLTaskPeerInfo::dlCompleted() const {
     return d.data()->completedCount > d.data()->endIndex - d.data()->startIndex+1
             ? d.data()->endIndex - d.data()->startIndex+1
             : d.data()->completedCount;
 }
 
-quint64 PeerInfo::rangeStart() const {
+quint64 DLTaskPeerInfo::rangeStart() const {
     return d.data()->startIndex + dlCompleted();
 }
 
@@ -123,79 +121,84 @@ quint64 PeerInfo::rangeStart() const {
  *                                                                                                *
  **************************************************************************************************/
 
-QDebug operator <<(QDebug dbg, const YADownloader::PeerInfo &info)
+QDebug operator <<(QDebug dbg, const YADownloader::DLTaskPeerInfo &info)
 {
-//    return dbg<<QString("Peer [start=%1],[end=%2],[complete=%3], [path=%4]")
-//                .arg(info.startIndex()).arg(info.endIndex())
-//                .arg(QString::number(info.completedCount())).arg(info.filePath());
-    QVariantHash hash;
-    hash.insert(TASK_PEER_START_IDX, info.startIndex());
-    hash.insert(TASK_PEER_END_IDX, info.endIndex());
-    hash.insert(TASK_PEER_COMPLETED_CNT, info.dlCompleted());
-    return dbg<<hash;
+    return dbg<<QString("Peer [start=%1],[end=%2],[complete=%3], [rangeStart=%4], [blockSize=%5], [path=%6]")
+                .arg(info.startIndex())
+                .arg(info.endIndex())
+                .arg(QString::number(info.dlCompleted()))
+                .arg(QString::number(info.rangeStart()))
+                .arg(QString::number(info.endIndex()-info.startIndex()+1))
+                .arg(info.filePath());
 }
 
 /**************************************************************************************************
  *                                                                                                *
  **************************************************************************************************/
 
-DLTaskPeer::DLTaskPeer(DLTaskStateDispatch *dispatch, const PeerInfo &info, QNetworkReply *reply, QObject *parent)
+DLTaskPeer::DLTaskPeer(DLTaskStateDispatch *dispatch, const DLTaskPeerInfo &info, QNetworkReply *reply, QObject *parent)
     : QObject(parent)
     , m_file(new QFile(this))
     , m_reply(reply)
     , m_dispatch(dispatch)
     , m_peerInfo(info)
     , m_doneCount(0)
+    , m_peerSize(0)
 {
-    m_file->setFileName (m_peerInfo.filePath() + PEER_TAG);
-    if (!m_file->open (QIODevice::ReadWrite)) {
-        qCritical()<<Q_FUNC_INFO<<"open error for "<<m_file->fileName ();
+    qDebug()<<Q_FUNC_INFO<<" info is "<<m_peerInfo;
+
+    m_file->setFileName (m_peerInfo.filePath());
+    if (!m_file->open(QIODevice::ReadWrite)) {
+        qCritical()<<Q_FUNC_INFO<<"open error for "<<m_file->fileName();
+        return;
     }
 
     QString data = QString::number(m_peerInfo.startIndex())
             + QString::number(m_peerInfo.endIndex())
             + m_reply->request().url().toString();
     m_hash = QString(QCryptographicHash::hash(data.toUtf8(), QCryptographicHash::Sha1).toHex());
+    m_peerSize = info.endIndex() - info.startIndex() +1;
 
-    qDebug()<<Q_FUNC_INFO<<"peer hash ["<<m_hash<<"] for peer "<<m_peerInfo;
+    qDebug()<<Q_FUNC_INFO<<"peer hash ["<<m_hash<<"] for peer "<<m_peerInfo<<" start pos "<<info.rangeStart();
 
     connect (m_reply, &QNetworkReply::readyRead, [&](){
         if (m_reply->bytesAvailable () > 4096) {
 //            qDebug()<<Q_FUNC_INFO<<"hash ["<<m_hash<<"] readyRead bytes "<<(m_reply)->bytesAvailable ();
             QByteArray qba = m_reply->readAll ();
             quint64 pos = m_peerInfo.rangeStart ()+doneCount ();
-//            qDebug()<<Q_FUNC_INFO<<"hash ["<<m_hash<<"] file seek to "<<pos;
+//            qDebug()<<Q_FUNC_INFO<<"  hash ["<<m_hash<<"] file seek to "<<pos<<" write "<<qba.size();
             m_fileLocker.lockForWrite ();
 //            qDebug()<<Q_FUNC_INFO<<"hash ["<<m_hash<<"] lockForWrite ";
             m_file->seek (pos);
-            m_file->write (qba);
+            m_file->write (qba, qba.size());
+            m_file->flush();
             m_fileLocker.unlock ();
             setDoneCount(doneCount() + qba.size());
+            m_dispatch->dispatchDownloadProgress(m_hash, qba.size(), doneCount(), m_peerSize);
 //            qDebug()<<Q_FUNC_INFO<<"++++ hash "<<m_hash<<" DoneCount "<<doneCount()
 //                               <<" total "<<m_peerInfo.endIndex()-m_peerInfo.startIndex()+1;
         }
     });
 
     connect (m_reply, &QNetworkReply::finished, [&]() {
-//        qDebug()<<Q_FUNC_INFO<<"finished hash ["<<m_hash<<"] readyRead bytes "<<(m_reply)->bytesAvailable ();
+        int statusCode = m_reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        qDebug()<<Q_FUNC_INFO<<"finished hash ["<<m_hash<<"] statusCode "<<statusCode;
+
+        //TODO check statusCode to see if download succeed or url redirect
+
         QByteArray qba = m_reply->readAll ();
         quint64 pos = m_peerInfo.rangeStart ()+doneCount ();
-//        qDebug()<<Q_FUNC_INFO<<"file seek to "<<pos;
+//        qDebug()<<Q_FUNC_INFO<<"hash ["<<m_hash<<"] file seek to "<<pos<<" write "<<qba.size();
         m_fileLocker.lockForWrite ();
         m_file->seek (pos);
         m_file->write (qba);
+        m_file->flush ();
+//        qDebug()<<Q_FUNC_INFO<<"  now file size "<<m_file->size();
         m_fileLocker.unlock ();
         setDoneCount(doneCount () + qba.size ());
-        m_file->flush ();
         m_file->close ();
+        m_dispatch->dispatchDownloadProgress(m_hash, qba.size(), doneCount(), m_peerSize);
     });
-
-    connect(m_reply, &QNetworkReply::downloadProgress, [&](qint64 bytesReceived, qint64 bytesTotal) {
-//        qDebug()<<Q_FUNC_INFO<<"---- hash "<<m_hash<<" DoneCount "<<doneCount()<<" bytesReceived "<<bytesReceived
-//                           <<" total "<<bytesTotal;
-        m_dispatch->dispatchDownloadProgress(m_hash, bytesReceived, doneCount(), bytesTotal);
-    });
-//    connect(m_reply, &QNetworkReply::downloadProgress, this, &DLTaskPeer::downloadProgress);
 }
 
 DLTaskPeer::~DLTaskPeer()
@@ -218,7 +221,7 @@ DLTaskPeer::~DLTaskPeer()
     m_dispatch = nullptr;
 }
 
-PeerInfo DLTaskPeer::info() const {
+DLTaskPeerInfo DLTaskPeer::info() const {
     return m_peerInfo;
 }
 
@@ -239,16 +242,10 @@ qint64 DLTaskPeer::doneCount() const {
 }
 
 void DLTaskPeer::setDoneCount(const quint64 &doneCount) {
+    m_locker.lock();
     m_doneCount = doneCount;
+    m_locker.unlock();
 }
-
-//QNetworkReply *DLTaskPeer::reply() {
-//    return m_reply;
-//}
-
-//int DLTaskPeer::index() {
-//    return m_index;
-//}
 
 void DLTaskPeer::abort()
 {

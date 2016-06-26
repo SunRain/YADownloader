@@ -37,9 +37,9 @@ public:
     /// \return if has same identifier.
     /// The identifier tuple is composed of the
     ///
-    bool hasSameIdentifier(const PeerInfo &other);
+    bool hasSameIdentifier(const DLTaskPeerInfo &other);
 
-    QString hash() const;
+//    QString hash() const;
 
     QString downloadUrl() const;
 
@@ -51,9 +51,9 @@ public:
 
     quint64 readySize() const;
 
-    PeerInfoList peerList() const;
+    DLTaskPeerInfoList peerList() const;
 
-    void setHash(const QString &hash);
+//    void setHash(const QString &hash);
 
     void setDownloadUrl(const QString &downloadUrl);
 
@@ -65,7 +65,7 @@ public:
 
     void setReadySize(quint64 readySize);
 
-    void setPeerList(const PeerInfoList &peerList);
+    void setPeerList(const DLTaskPeerInfoList &peerList);
 
 private:
     QSharedPointer<DLTaskInfoPriv> d;

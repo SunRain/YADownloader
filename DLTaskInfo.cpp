@@ -11,8 +11,8 @@ class DLTaskInfoPriv : public QSharedData
 {
 public:
     DLTaskInfoPriv()
-        : uid(QString())
-        , downloadUrl(QString())
+//        : uid(QString())
+        : downloadUrl(QString())
         , requestUrl(QString())
         , filePath(QString())
         , totalSize(0)
@@ -21,13 +21,13 @@ public:
     }
     virtual ~DLTaskInfoPriv() {}
 
-    QString uid;
+//    QString uid;
     QString downloadUrl;
     QString requestUrl;
     QString filePath;
     qint64 totalSize;
     quint64 readySize;
-    PeerInfoList peerList;
+    DLTaskPeerInfoList peerList;
 };
 
 DLTaskInfo::DLTaskInfo()
@@ -49,7 +49,7 @@ bool DLTaskInfo::operator ==(const DLTaskInfo &other) const
             && d.data()->readySize == other.d.data()->readySize
             && d.data()->requestUrl == other.d.data()->requestUrl
             && d.data()->totalSize == other.d.data()->totalSize
-            && d.data()->uid == other.d.data()->uid
+//            && d.data()->uid == other.d.data()->uid
             && d.data()->filePath == other.d.data()->filePath;
 }
 
@@ -71,16 +71,16 @@ bool DLTaskInfo::isEmpty() const
             || d.data()->filePath.isEmpty() || d.data()->peerList.isEmpty();
 }
 
-bool DLTaskInfo::hasSameIdentifier(const PeerInfo &other)
+bool DLTaskInfo::hasSameIdentifier(const DLTaskPeerInfo &other)
 {
     //TODO
     return false;
 }
 
-QString DLTaskInfo::hash() const
-{
-    return d.data()->uid;
-}
+//QString DLTaskInfo::hash() const
+//{
+//    return d.data()->uid;
+//}
 
 QString DLTaskInfo::downloadUrl() const
 {
@@ -107,15 +107,15 @@ quint64 DLTaskInfo::readySize() const
     return d.data()->readySize;
 }
 
-PeerInfoList DLTaskInfo::peerList() const
+DLTaskPeerInfoList DLTaskInfo::peerList() const
 {
     return d.data()->peerList;
 }
 
-void DLTaskInfo::setHash(const QString &hash)
-{
-    d.data()->uid = hash;
-}
+//void DLTaskInfo::setHash(const QString &hash)
+//{
+//    d.data()->uid = hash;
+//}
 
 void DLTaskInfo::setDownloadUrl(const QString &downloadUrl)
 {
@@ -142,23 +142,24 @@ void DLTaskInfo::setReadySize(quint64 readySize)
     d.data()->readySize = readySize;
 }
 
-void DLTaskInfo::setPeerList(const PeerInfoList &peerList)
+void DLTaskInfo::setPeerList(const DLTaskPeerInfoList &peerList)
 {
-    d.data()->peerList.clear();
-    d.data()->peerList.append(peerList);
+//    d.data()->peerList.clear();
+//    d.data()->peerList.append(peerList);
+    d.data()->peerList = peerList;
 }
 
 QDebug operator <<(QDebug dbg, const YADownloader::DLTaskInfo &info)
 {
     QVariantHash hash;
-    hash.insert(TASK_INFO_UID, info.hash());
+//    hash.insert(TASK_INFO_UID, info.hash());
     hash.insert(TASK_INFO_FILE_PATH, info.filePath());
     hash.insert(TASK_INFO_DL_URL, info.downloadUrl());
     hash.insert(TASK_INFO_REQ_URL, info.requestUrl());
     hash.insert(TASK_INFO_READY_SIZE, info.readySize());
     hash.insert(TASK_INFO_TOTAL_SIZE, info.totalSize());
     QVariantList list;
-    foreach (PeerInfo p, info.peerList()) {
+    foreach (DLTaskPeerInfo p, info.peerList()) {
         QVariantHash hash;
         hash.insert(TASK_PEER_START_IDX, p.startIndex());
         hash.insert(TASK_PEER_END_IDX, p.endIndex());
