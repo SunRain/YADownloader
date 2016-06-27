@@ -71,6 +71,15 @@ bool DLTaskInfo::isEmpty() const
             || d.data()->filePath.isEmpty() || d.data()->peerList.isEmpty();
 }
 
+void DLTaskInfo::clear()
+{
+    d.data()->downloadUrl.clear();
+    d.data()->filePath.clear();
+    d.data()->peerList.clear();
+    d.data()->readySize = 0;
+    d.data()->totalSize = 0;
+}
+
 bool DLTaskInfo::hasSameIdentifier(const DLTaskPeerInfo &other)
 {
     //TODO

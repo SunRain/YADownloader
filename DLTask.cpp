@@ -103,7 +103,10 @@ bool DLTask::event(QEvent *event)
             if (!m_workerThread->isRunning ())
                 m_workerThread->start ();
             if (m_peerList.isEmpty ()) {
-                initPeers ();
+//                download();
+                initTaskInfo();
+                download();
+                emitStatus();
             }
         }
         return true;
@@ -135,6 +138,11 @@ bool DLTask::event(QEvent *event)
     return QObject::event(event);
 }
 
+DLTask::TaskStatus DLTask::status() const
+{
+    return m_DLStatus;
+}
+
 void DLTask::start()
 {
     m_DLStatus = DL_START;
@@ -155,70 +163,93 @@ void DLTask::abort()
     saveInfo();
     qDeleteAll(m_peerList);
     m_peerList.clear();
+    emitStatus();
 }
 
-void DLTask::initPeers()
+void DLTask::suspend()
 {
-    if (m_totalSize <= 0) { //We can't get downloaded file size, so we should use 1 thread to download
-        m_dlRequest.setPreferThreadCount (1);
-    }
-    m_dlTaskInfo.setDownloadUrl(m_dlRequest.downloadUrl().toString());
-    m_dlTaskInfo.setFilePath(m_dlRequest.filePath());
-    m_dlTaskInfo.setReadySize(0);
-    m_dlTaskInfo.setRequestUrl(m_dlRequest.requestUrl().toString());
-    m_dlTaskInfo.setTotalSize(m_totalSize);
+    abort();
+}
 
-    foreach (DLTaskInfo info, m_transDB->list()) {
-        if (info.requestUrl() == m_dlTaskInfo.requestUrl()
-//                && info.downloadUrl() == m_dlRequest.downloadUrl() //check if url redirected
-                && info.filePath() == m_dlTaskInfo.filePath()
-                && info.totalSize() == m_totalSize) { //check if remote host file changed
-            m_dlTaskInfo = info;
-            break;
-        }
+void DLTask::resume()
+{
+    if (!m_peerList.isEmpty()) {
+        qWarning()<<Q_FUNC_INFO<<"Can't resume as download peer still exists!!";
+        return;
     }
-    DLTaskPeerInfoList peerInfoList;
-    if (m_dlTaskInfo.isEmpty()) { //download new file
-        int threadCount = m_dlRequest.preferThreadCount ();
-        quint64 step = m_totalSize/threadCount;
-        quint64 start = -step;
-        quint64 end = 0;
-        for (int index=1; index <= threadCount; ++index) {
-            end += step;
-            start += step;
-            if (index == threadCount) {
-                end = m_totalSize;
-            }
-            DLTaskPeerInfo pInfo;
-            pInfo.setStartIndex(start);
-            pInfo.setEndIndex(end-1);
-            pInfo.setCompletedCount(0);
-            pInfo.setFilePath(m_dlTaskInfo.filePath() + PEER_TAG);
-            peerInfoList.append(pInfo);
-        }
-//        m_dlTaskInfo.setDownloadUrl(m_dlRequest.downloadUrl().toString());
-//        m_dlTaskInfo.setFilePath(m_dlRequest.filePath());
-        m_dlTaskInfo.setPeerList(peerInfoList);
-//        m_dlTaskInfo.setReadySize(0);
-//        m_dlTaskInfo.setRequestUrl(m_dlRequest.requestUrl().toString());
-//        m_dlTaskInfo.setTotalSize(m_totalSize);
-//        m_dlTaskInfo.setHash(m_uid);
-        m_transDB->appendTaskInfo(m_dlTaskInfo);
-        m_transDB->flush();
-    } else { // continue to download
-        DLTaskPeerInfoList list = m_dlTaskInfo.peerList();
-        foreach (DLTaskPeerInfo i, list) {
-            i.setFilePath(m_dlTaskInfo.filePath() + PEER_TAG);
-            peerInfoList.append(i);
-        }
-        m_dlRequest.setPreferThreadCount(peerInfoList.size());
+    m_DLStatus = DL_START;
+    if (m_totalSize <= 0) {
+        start();
+    } else {
+        initTaskInfo();
+        download();
+        emitStatus();
     }
+}
+
+void DLTask::download()
+{
+//    if (m_totalSize <= 0) { //We can't get downloaded file size, so we should use 1 thread to download
+//        m_dlRequest.setPreferThreadCount (1);
+//    }
+//    m_dlTaskInfo.setDownloadUrl(m_dlRequest.downloadUrl().toString());
+//    m_dlTaskInfo.setFilePath(m_dlRequest.filePath());
+//    m_dlTaskInfo.setReadySize(0);
+//    m_dlTaskInfo.setRequestUrl(m_dlRequest.requestUrl().toString());
+//    m_dlTaskInfo.setTotalSize(m_totalSize);
+
+//    foreach (DLTaskInfo info, m_transDB->list()) {
+//        if (info.requestUrl() == m_dlTaskInfo.requestUrl()
+////                && info.downloadUrl() == m_dlRequest.downloadUrl() //check if url redirected
+//                && info.filePath() == m_dlTaskInfo.filePath()
+//                && info.totalSize() == m_totalSize) { //check if remote host file changed
+//            m_dlTaskInfo = info;
+//            break;
+//        }
+//    }
+//    DLTaskPeerInfoList peerInfoList;
+//    if (m_dlTaskInfo.isEmpty()) { //download new file
+//        int threadCount = m_dlRequest.preferThreadCount ();
+//        quint64 step = m_totalSize/threadCount;
+//        quint64 start = -step;
+//        quint64 end = 0;
+//        for (int index=1; index <= threadCount; ++index) {
+//            end += step;
+//            start += step;
+//            if (index == threadCount) {
+//                end = m_totalSize;
+//            }
+//            DLTaskPeerInfo pInfo;
+//            pInfo.setStartIndex(start);
+//            pInfo.setEndIndex(end-1);
+//            pInfo.setCompletedCount(0);
+//            pInfo.setFilePath(m_dlTaskInfo.filePath() + PEER_TAG);
+//            peerInfoList.append(pInfo);
+//        }
+////        m_dlTaskInfo.setDownloadUrl(m_dlRequest.downloadUrl().toString());
+////        m_dlTaskInfo.setFilePath(m_dlRequest.filePath());
+//        m_dlTaskInfo.setPeerList(peerInfoList);
+////        m_dlTaskInfo.setReadySize(0);
+////        m_dlTaskInfo.setRequestUrl(m_dlRequest.requestUrl().toString());
+////        m_dlTaskInfo.setTotalSize(m_totalSize);
+////        m_dlTaskInfo.setHash(m_uid);
+//        m_transDB->appendTaskInfo(m_dlTaskInfo);
+//        m_transDB->flush();
+//    } else { // continue to download
+//        DLTaskPeerInfoList list = m_dlTaskInfo.peerList();
+//        foreach (DLTaskPeerInfo i, list) {
+//            i.setFilePath(m_dlTaskInfo.filePath() + PEER_TAG);
+//            peerInfoList.append(i);
+//        }
+//        m_dlRequest.setPreferThreadCount(peerInfoList.size());
+//    }
 
     ///
     /// reset m_downloadedSize to 0, thus we can calculate downloaded size from configuration file
-    m_downloadedSize = 0;
-    m_dlBytesReceived = 0;
-    m_dlBytesFileOffest = 0;
+//    m_downloadedSize = 0;
+//    m_dlBytesReceived = 0;
+//    m_dlBytesFileOffest = 0;
+    DLTaskPeerInfoList peerInfoList = m_dlTaskInfo.peerList();
     foreach (DLTaskPeerInfo info, peerInfoList) {
 //        m_downloadedSize += info.dlCompleted();
         m_dlBytesFileOffest += info.dlCompleted();
@@ -239,24 +270,89 @@ void DLTask::initPeers()
         }
         req.setRawHeader ("Connection", "keep-alive");
 
-        QNetworkReply *tmp = m_networkMgr->get (req);
-        if (!tmp) {
+        QNetworkReply *reply = m_networkMgr->get(req);
+        if (!reply) {
             qCritical()<<Q_FUNC_INFO<<"No QNetworkReply， download cant start";
             return;
         }
-        DLTaskPeer *peer = new DLTaskPeer(m_dispatch, info, tmp, 0);
+        DLTaskPeer *peer = new DLTaskPeer(m_dispatch, info, reply, 0);
         peer->moveToThread (m_workerThread);
         m_dlCompletedHash.insert(peer->hash(), info.dlCompleted());
         m_peerList.append(peer);
     }
     if (!m_workerThread->isRunning())
         m_workerThread->start();
+
+//    emitStatus();
 }
 
 QString DLTask::calculateUID() const
 {
     QString str = m_dlRequest.requestUrl().toString() + m_dlRequest.filePath()/* + m_dlRequest.downloadUrl().toString()*/;
     return QString(QCryptographicHash::hash(str.toUtf8(), QCryptographicHash::Md5).toHex());
+}
+
+void DLTask::initTaskInfo()
+{
+    if (m_totalSize <= 0) { //We can't get downloaded file size, so we should use 1 thread to download
+        m_dlRequest.setPreferThreadCount (1);
+    }
+//    m_dlTaskInfo.setDownloadUrl(m_dlRequest.downloadUrl().toString());
+//    m_dlTaskInfo.setFilePath(m_dlRequest.filePath());
+//    m_dlTaskInfo.setReadySize(0);
+//    m_dlTaskInfo.setRequestUrl(m_dlRequest.requestUrl().toString());
+//    m_dlTaskInfo.setTotalSize(m_totalSize);
+
+    m_dlTaskInfo.clear();
+    foreach (DLTaskInfo info, m_transDB->list()) {
+        if (info.requestUrl() == m_dlTaskInfo.requestUrl()
+//                && info.downloadUrl() == m_dlRequest.downloadUrl() //check if url redirected
+                && info.filePath() == m_dlTaskInfo.filePath()
+                && info.totalSize() == m_totalSize) { //check if remote host file changed
+            m_dlTaskInfo = info;
+            break;
+        }
+    }
+//    DLTaskPeerInfoList peerInfoList;
+    if (m_dlTaskInfo.isEmpty()) { //download new file
+        int threadCount = m_dlRequest.preferThreadCount ();
+        quint64 step = m_totalSize/threadCount;
+        quint64 start = -step;
+        quint64 end = 0;
+        DLTaskPeerInfoList peerInfoList;
+        for (int index=1; index <= threadCount; ++index) {
+            end += step;
+            start += step;
+            if (index == threadCount) {
+                end = m_totalSize;
+            }
+            DLTaskPeerInfo pInfo;
+            pInfo.setStartIndex(start);
+            pInfo.setEndIndex(end-1);
+            pInfo.setCompletedCount(0);
+            pInfo.setFilePath(m_dlTaskInfo.filePath() + PEER_TAG);
+            peerInfoList.append(pInfo);
+        }
+        m_dlTaskInfo.setDownloadUrl(m_dlRequest.downloadUrl().toString());
+        m_dlTaskInfo.setFilePath(m_dlRequest.filePath());
+        m_dlTaskInfo.setPeerList(peerInfoList);
+        m_dlTaskInfo.setReadySize(0);
+        m_dlTaskInfo.setRequestUrl(m_dlRequest.requestUrl().toString());
+        m_dlTaskInfo.setTotalSize(m_totalSize);
+//        m_dlTaskInfo.setHash(m_uid);
+        m_transDB->appendTaskInfo(m_dlTaskInfo);
+        m_transDB->flush();
+    } /*else { // continue to download
+        DLTaskPeerInfoList list = m_dlTaskInfo.peerList();
+        foreach (DLTaskPeerInfo i, list) {
+            i.setFilePath(m_dlTaskInfo.filePath() + PEER_TAG);
+            peerInfoList.append(i);
+        }
+        m_dlRequest.setPreferThreadCount(peerInfoList.size());
+    }*/
+    m_downloadedSize = m_dlTaskInfo.readySize();
+    m_dlBytesReceived = 0;
+    m_dlBytesFileOffest = 0;
 }
 
 void DLTask::saveInfo()

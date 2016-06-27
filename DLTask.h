@@ -19,7 +19,14 @@ class DLTransmissionDatabase;
 class YADOWNLOADERSHARED_EXPORT DLTask : public QObject
 {
     Q_OBJECT
+
 public:
+    enum TaskStatus {
+        DL_START = 0x0,
+        DL_STOP,
+//        DL_SUSPEND,
+//        DL_RESUME
+    };
 
     virtual ~DLTask();
 
@@ -35,18 +42,15 @@ public:
 public:
     bool event(QEvent *event);
 
+    TaskStatus status() const;
+
 public slots:
     void start();
     void abort();
-    //    void suspend();
-    //    void resume();
+    void suspend();
+    void resume();
 
 protected:
-    enum TaskStatus {
-        DL_START = 0x0,
-        DL_STOP,
-        DL_SUSPEND
-    };
     DLTask(DLTransmissionDatabase *db, QObject *parent = 0);
     DLTask(DLTransmissionDatabase *db, const DLRequest &request, QObject *parent = 0);
     void setRequest(const DLRequest &request);
@@ -54,10 +58,16 @@ protected:
 signals:
     void initFileSize(qint64 fileSize);
     void downloadProgress(qint64 bytesReceived, qint64 bytesTotal);
+    void statusChanged(TaskStatus status);
+
 private:
     QString calculateUID() const;
-    void initPeers();
+    void initTaskInfo();
+    void download();
     void saveInfo();
+    inline void emitStatus() {
+        emit statusChanged(m_DLStatus);
+    }
 
 private:
     QNetworkAccessManager *m_networkMgr;

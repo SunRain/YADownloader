@@ -30,6 +30,8 @@ public:
     ///
     bool isEmpty() const;
 
+    void clear();
+
     //TODO
     ///
     /// \brief hasSameIdentifier
