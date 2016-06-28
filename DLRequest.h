@@ -30,6 +30,10 @@ public:
     ///
     bool hasSameIdentifier(const DLRequest &other);
 
+    ///
+    /// \brief filePath real saved full file path
+    /// \return
+    ///
     QString filePath() const;
 
     void setRawHeader(const QByteArray &name, const QByteArray &value);

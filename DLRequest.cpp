@@ -92,7 +92,22 @@ bool DLRequest::hasSameIdentifier(const DLRequest &other)
 }
 
 QString DLRequest::filePath() const {
-    return QString("%1/%2").arg(d.data()->savePath).arg(d.data()->saveName);
+    if (d.data()->savePath.isEmpty() || d.data()->saveName.isEmpty()
+            || d.data()->downloadUrl.isEmpty() || !d.data()->downloadUrl.isValid()) {
+        return QString();
+    }
+    QString savePath = d.data()->savePath;
+    QString saveName = d.data()->saveName;
+    if (savePath.startsWith("file://")) { //remove file:// scheme
+        savePath = savePath.right(savePath.length() - 7);
+    }
+    if (savePath.endsWith("/")) { //remove last /
+        savePath = savePath.left(savePath.length() -1);
+    }
+    if (saveName.startsWith("/")) { //remove first /
+        saveName = saveName.right(saveName.length() -1);
+    }
+    return QString("%1/%2").arg(savePath).arg(saveName);
 }
 
 void DLRequest::setRawHeader(const QByteArray &name, const QByteArray &value)
