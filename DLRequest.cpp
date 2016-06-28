@@ -1,5 +1,6 @@
 #include "DLRequest.h"
 
+#include <QDebug>
 #include <QDir>
 #include <QSharedData>
 
@@ -179,6 +180,18 @@ QUrl DLRequest::sortUrlQuery(const QUrl &url)
     QStringList querylist = list.last().split("&");
     qStableSort(querylist.begin(), querylist.end(), qGreater<QString>());
     return QUrl(QString("%1?%2").arg(list.at(0)).arg(querylist.join("&")));
+}
+
+QDebug operator <<(QDebug dbg, const DLRequest &req)
+{
+    QStringList list;
+    foreach (QByteArray key, req.rawHeaders()) {
+        list.append(QString("%1=%2").arg(QString(key)).arg(QString(req.rawHeaders().value(key))));
+    }
+    return dbg<<QString("DLRequest [requestUrl=%1], [downloadUrl=%2], [filePath=%3], [preferThreadCount=%4]")
+                .arg(req.requestUrl().toString()).arg(req.downloadUrl().toString())
+                .arg(req.filePath()).arg(req.preferThreadCount())
+             <<QString(" [rawHeaders >>> %1]").arg(list.join(","));
 }
 
 } //

@@ -68,6 +68,8 @@ private:
     QSharedPointer<DLRequestPriv> d;
 };
 
+QDebug operator <<(QDebug dbg, const DLRequest& req);
+
 } //YADownloader
 
 //Q_DECLARE_METATYPE(YADownloader::DLRequest)
