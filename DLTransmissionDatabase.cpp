@@ -110,6 +110,7 @@ void DLTransmissionDatabase::saveToLocalStorage()
             hash.insert(TASK_PEER_COMPLETED_CNT, QString::number(p.dlCompleted()));
             hash.insert(TASK_PEER_START_IDX, QString::number(p.startIndex()));
             hash.insert(TASK_PEER_END_IDX, QString::number(p.endIndex()));
+            hash.insert(TASK_INFO_FILE_PATH, p.filePath());
             list.append(hash);
         }
         top.insert(TASK_INFO_PEER_LIST, list);
