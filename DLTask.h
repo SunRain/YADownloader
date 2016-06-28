@@ -24,8 +24,8 @@ public:
     enum TaskStatus {
         DL_START = 0x0,
         DL_STOP,
-//        DL_SUSPEND,
-//        DL_RESUME
+        DL_FINISH,
+        DL_FAILURE
     };
 
     virtual ~DLTask();
