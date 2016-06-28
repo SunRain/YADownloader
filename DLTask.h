@@ -38,17 +38,11 @@ public:
     ///
     QString uid() const;
 
-    // QObject interface
-public:
-    bool event(QEvent *event);
-
     TaskStatus status() const;
 
-public slots:
-    void start();
-    void abort();
-    void suspend();
-    void resume();
+    // QObject interface
+protected:
+    bool event(QEvent *event);
 
 protected:
     DLTask(DLTransmissionDatabase *db, QObject *parent = 0);
@@ -59,6 +53,12 @@ signals:
     void initFileSize(qint64 fileSize);
     void downloadProgress(qint64 bytesReceived, qint64 bytesTotal);
     void statusChanged(TaskStatus status);
+
+public slots:
+    void start();
+    void abort();
+    void suspend();
+    void resume();
 
 private:
     QString calculateUID() const;
