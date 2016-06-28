@@ -68,6 +68,9 @@ private:
     inline void emitStatus() {
         emit statusChanged(m_DLStatus);
     }
+    bool peerCompleted(const DLTaskPeerInfo &info);
+    bool allPeerCompleted();
+    void managerFinish();
 
 private:
     QNetworkAccessManager *m_networkMgr;
@@ -84,7 +87,7 @@ private:
     TaskStatus m_DLStatus;
     DLTaskInfo m_dlTaskInfo;
 
-    QHash<QString, quint64> m_dlCompletedHash;//completedCount
+    QHash<QString, quint64> m_dlCompletedCountHash;//completedCount
 //    QString m_uid;
 
     int m_initHeaderCounts;

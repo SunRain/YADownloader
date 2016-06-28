@@ -71,6 +71,10 @@ public:
     explicit DLTaskPeer(DLTaskStateDispatch *dispatch, const DLTaskPeerInfo &info, QNetworkReply *reply, QObject *parent = 0);
     virtual ~DLTaskPeer();
 
+    ///
+    /// \brief info
+    /// \return  DLTaskPeerInfo for origin requested DLTaskPeerInfo
+    ///
     DLTaskPeerInfo info() const;
     QString hash() const;
     QUrl downloadUrl() const;

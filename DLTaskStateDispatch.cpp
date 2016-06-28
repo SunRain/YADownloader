@@ -56,7 +56,7 @@ DLStatusEvent::DLStatusEvent(const QString &hash, DLStatus status, bool isTaskPe
 
 }
 
-bool DLStatusEvent::isTaskPeeEventr() const
+bool DLStatusEvent::isTaskPeeEvent() const
 {
     return m_isTaskPeer;
 }

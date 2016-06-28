@@ -50,7 +50,7 @@ public:
     };
     explicit DLStatusEvent(const QString &hash, DLStatus status, bool isTaskPeerEvent);
     virtual ~DLStatusEvent() {}
-    bool isTaskPeeEventr() const;
+    bool isTaskPeeEvent() const;
     QString hash() const;
     DLStatus status() const;
 private:
@@ -72,7 +72,7 @@ public:
     /// \brief dispatchDownloadProgress
     /// \param hash Hash for taskpeer
     /// \param bytesReceived Received bytes sine download started
-    /// \param downloadedCnt Downloaded bytes for a taskpeer
+    /// \param downloadedCnt ALL Downloaded bytes for a taskpeer
     /// \param bytesTotal Total bytes for a taskpeer
     ///
     void dispatchDownloadProgress(const QString &hash, qint64 bytesReceived, qint64 downloadedCnt, qint64 bytesTotal);

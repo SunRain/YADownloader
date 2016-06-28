@@ -113,12 +113,12 @@ bool DLTask::event(QEvent *event)
         QString hash = e->hash();
         qint64 dlcnt = e->downloadedCount();
         m_dlBytesReceived += e->bytesReceived();
-        m_dlCompletedHash.insert(hash, dlcnt);
+        m_dlCompletedCountHash.insert(hash, dlcnt);
         quint64 d =0;
-        foreach (quint64 i, m_dlCompletedHash.values()) {
+        foreach (quint64 i, m_dlCompletedCountHash.values()) {
             d += i;
         }
-        m_downloadedSize = m_dlBytesFileOffest + d;
+        m_downloadedSize = d;//m_dlBytesFileOffest + d;
 //        qDebug()<<Q_FUNC_INFO<<" hash "<<hash<<" dlcnt "<<dlcnt<<" total "<<m_totalSize
 //               <<" bytesReceived "<<e->bytesReceived();
 
@@ -129,6 +129,19 @@ bool DLTask::event(QEvent *event)
                <<" totalSize "<<m_totalSize
                <<" percent "<<(float)m_downloadedSize/(float)m_totalSize;
         emit downloadProgress(m_downloadedSize, m_totalSize);
+        return true;
+    } else if (event->type() == DLTASK_EVENT_DL_STATUS) {
+        DLStatusEvent *e = (DLStatusEvent*)event;
+        QString hash = e->hash();
+        DLStatusEvent::DLStatus status = e->status();
+        if (e->isTaskPeeEvent()) {
+            if (status == DLStatusEvent::DLStatus::DL_FAILURE) {
+                if (allPeerCompleted()) {
+                    managerFinish();
+                }
+            }
+        }
+
         return true;
     }
     return QObject::event(event);
@@ -191,7 +204,8 @@ void DLTask::download()
     foreach (DLTaskPeerInfo info, peerInfoList) {
 //        m_downloadedSize += info.dlCompleted();
         m_dlBytesFileOffest += info.dlCompleted();
-
+        if (peerCompleted(info))
+            continue;
         QNetworkRequest req(m_dlRequest.downloadUrl ());
         if (!m_dlRequest.rawHeaders ().isEmpty ()) {
             foreach (QByteArray key, m_dlRequest.rawHeaders ().keys ()) {
@@ -215,7 +229,7 @@ void DLTask::download()
         }
         DLTaskPeer *peer = new DLTaskPeer(m_dispatch, info, reply, 0);
         peer->moveToThread (m_workerThread);
-        m_dlCompletedHash.insert(peer->hash(), info.dlCompleted());
+        m_dlCompletedCountHash.insert(peer->hash(), info.dlCompleted());
         m_peerList.append(peer);
     }
     if (!m_workerThread->isRunning())
@@ -290,15 +304,45 @@ void DLTask::saveInfo()
 {
     DLTaskPeerInfoList list;
     foreach (DLTaskPeer *peer, m_peerList) {
-        qint64 done = m_dlCompletedHash.value(peer->hash());
+        qint64 done = m_dlCompletedCountHash.value(peer->hash());
         DLTaskPeerInfo info = peer->info();
-        info.setCompletedCount(done + info.dlCompleted());
+        info.setCompletedCount(done);
         list.append(info);
     }
     m_dlTaskInfo.setPeerList(list);
     m_dlTaskInfo.setReadySize(m_downloadedSize);
     m_transDB->appendTaskInfo(m_dlTaskInfo);
     m_transDB->flush();
+}
+
+bool DLTask::peerCompleted(const DLTaskPeerInfo &info)
+{
+    if (info.dlCompleted() <= 0)
+        return false;
+    if (info.dlCompleted() == (info.endIndex()-info.startIndex()+1))
+        return true;
+    return false;
+}
+
+bool DLTask::allPeerCompleted()
+{
+    bool ret = true;
+    foreach (DLTaskPeer *p, m_peerList) {
+        DLTaskPeerInfo info = p->info();
+        qint64 completed = m_dlCompletedCountHash.value(p->hash());
+        qint64 total = info.endIndex() - info.startIndex() +1;
+        if (completed != total) {
+            ret = false;
+            break;
+        }
+    }
+    return ret;
+}
+
+void DLTask::managerFinish()
+{
+    //TODO
+    qDebug()<<Q_FUNC_INFO<<">>>>>>>>>>>>>>>>>>>>>>>>> dl finish";
 }
 
 
