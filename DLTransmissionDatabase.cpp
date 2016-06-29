@@ -37,7 +37,7 @@ void DLTransmissionDatabase::appendTaskInfo(const DLTaskInfo &info)
 
 DLTaskInfoList DLTransmissionDatabase::list() const
 {
-    qDebug()<<Q_FUNC_INFO<<">>>>>>>>> "<<m_infoHash.values();
+//    qDebug()<<Q_FUNC_INFO<<">>>>>>>>> "<<m_infoHash.values();
     return m_infoHash.values();
 }
 
@@ -119,7 +119,7 @@ void DLTransmissionDatabase::saveToLocalStorage()
     QJsonDocument doc = QJsonDocument::fromVariant(all);
     QByteArray qba = doc.toJson();
 
-    qDebug()<<Q_FUNC_INFO<<" value "<<qba;
+//    qDebug()<<Q_FUNC_INFO<<" value "<<qba;
 
     QFile file(m_cfgFile);
     if (file.exists()) {

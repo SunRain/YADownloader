@@ -79,6 +79,10 @@ public:
     QString hash() const;
     QUrl downloadUrl() const;
 
+    ///
+    /// \brief doneCount
+    /// \return downloaded bytes since start
+    ///
     qint64 doneCount() const;
 
 protected:

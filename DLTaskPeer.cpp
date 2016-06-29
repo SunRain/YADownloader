@@ -184,7 +184,8 @@ DLTaskPeer::DLTaskPeer(DLTaskStateDispatch *dispatch, const DLTaskPeerInfo &info
                 //                               <<" total "<<m_peerInfo.endIndex()-m_peerInfo.startIndex()+1;
             }
         } else {
-            qWarning()<<Q_FUNC_INFO<<QString("Download peer [%1] Http header error!").arg(m_hash);
+            qWarning()<<Q_FUNC_INFO<<QString("Download peer [%1] Http header error with [code=%2]!")
+                        .arg(m_hash).arg(statusCode);
             m_fileLocker.lockForWrite ();
             m_file->flush();
             m_fileLocker.unlock ();
@@ -212,11 +213,19 @@ DLTaskPeer::DLTaskPeer(DLTaskStateDispatch *dispatch, const DLTaskPeerInfo &info
             m_dispatch->dispatchDownloadProgress(m_hash, qba.size(), doneCount()+m_peerInfo.dlCompleted(), m_peerSize);
             m_dispatch->dispatchDownloadStatus(m_hash, DLStatusEvent::DLStatus::DL_FINISH, true);
         } else {
-            qWarning()<<Q_FUNC_INFO<<QString("Download peer [%1] Http header error!").arg(m_hash);
+            qWarning()<<Q_FUNC_INFO<<QString("Download peer [%1] Http header error with [code=%2]!")
+                        .arg(m_hash).arg(statusCode);
             m_fileLocker.lockForWrite ();
             m_file->flush();
             m_fileLocker.unlock ();
             m_file->close();
+            /// if current peer downloaded finished, we'll send finish signal
+            /// otherwise we confront some http error
+            if (m_peerInfo.dlCompleted() == (m_peerInfo.endIndex() - m_peerInfo.startIndex() +1)) {
+                m_dispatch->dispatchDownloadStatus(m_hash, DLStatusEvent::DLStatus::DL_FINISH, true);
+            } else { /// download error
+                m_dispatch->dispatchDownloadStatus(m_hash, DLStatusEvent::DLStatus::DL_FAILURE, true);
+            }
         }
     });
 }

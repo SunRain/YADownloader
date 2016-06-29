@@ -7,6 +7,7 @@
 #include <QTimer>
 #include <QCryptographicHash>
 
+#include <QFile>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
@@ -108,7 +109,8 @@ bool DLTask::event(QEvent *event)
             }
         }
         return true;
-    } else if (event->type() == DLTASK_EVENT_DL_PROGRESS) {
+    }
+    if (event->type() == DLTASK_EVENT_DL_PROGRESS) {
         DLProgressEvent *e = (DLProgressEvent*)event;
         QString hash = e->hash();
         qint64 dlcnt = e->downloadedCount();
@@ -130,12 +132,14 @@ bool DLTask::event(QEvent *event)
                <<" percent "<<(float)m_downloadedSize/(float)m_totalSize;
         emit downloadProgress(m_downloadedSize, m_totalSize);
         return true;
-    } else if (event->type() == DLTASK_EVENT_DL_STATUS) {
+    }
+    if (event->type() == DLTASK_EVENT_DL_STATUS) {
         DLStatusEvent *e = (DLStatusEvent*)event;
         QString hash = e->hash();
         DLStatusEvent::DLStatus status = e->status();
+        qDebug()<<Q_FUNC_INFO<<">>>>>>>>>>>>> DLTASK_EVENT_DL_STATUS for hash "<<hash;
         if (e->isTaskPeeEvent()) {
-            if (status == DLStatusEvent::DLStatus::DL_FAILURE) {
+            if (status == DLStatusEvent::DLStatus::DL_FINISH) {
                 if (allPeerCompleted()) {
                     managerFinish();
                 }
@@ -204,8 +208,12 @@ void DLTask::download()
     foreach (DLTaskPeerInfo info, peerInfoList) {
 //        m_downloadedSize += info.dlCompleted();
         m_dlBytesFileOffest += info.dlCompleted();
-        if (peerCompleted(info))
-            continue;
+
+
+        ///NOTE we still start a new request as we need to save the request infomation into local storage
+        ///
+//        if (peerCompleted(info))
+//            continue;
         QNetworkRequest req(m_dlRequest.downloadUrl ());
         if (!m_dlRequest.rawHeaders ().isEmpty ()) {
             foreach (QByteArray key, m_dlRequest.rawHeaders ().keys ()) {
@@ -214,8 +222,9 @@ void DLTask::download()
                 req.setRawHeader(key, m_dlRequest.rawHeaders().value(key, QByteArray()));
             }
         }
-        /// if Range is not supported by remote server or we can't get remote file size,
+        ///NOTE if Range is not supported by remote server or we can't get remote file size,
         /// we DISABLE resume downloading
+        /// Need forther codeing
         if (m_totalSize > 0) {
             QString range = QString("bytes=%1-%2").arg(info.rangeStart()).arg(info.endIndex());
             req.setRawHeader ("Range", range.toUtf8 ());
@@ -341,8 +350,23 @@ bool DLTask::allPeerCompleted()
 
 void DLTask::managerFinish()
 {
-    //TODO
     qDebug()<<Q_FUNC_INFO<<">>>>>>>>>>>>>>>>>>>>>>>>> dl finish";
+    m_DLStatus = DL_STOP;
+    saveInfo();
+
+    QString fname = m_dlRequest.filePath();
+    QFile f(fname + PEER_TAG);
+    if (!f.exists()) {
+        qWarning()<<Q_FUNC_INFO<<QString("Download finished, but we can't find tmp file [%1] now")
+                    .arg(fname + PEER_TAG);
+        return;
+    }
+    if (f.size() != m_totalSize && m_totalSize > 0)
+        qWarning()<<Q_FUNC_INFO<<QString("Download finished, but downloaded file size [%1], not equal as prefer size [%2]")
+                    .arg(f.size()).arg(m_downloadedSize);
+
+    if (!f.rename(fname))
+        qWarning()<<Q_FUNC_INFO<<"Rename download file error "<<f.errorString();
 }
 
 
