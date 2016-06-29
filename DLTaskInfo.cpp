@@ -7,31 +7,31 @@
 
 namespace YADownloader {
 
-class DLTaskInfoPriv : public QSharedData
-{
-public:
-    DLTaskInfoPriv()
-//        : uid(QString())
-        : downloadUrl(QString())
-        , requestUrl(QString())
-        , filePath(QString())
-        , totalSize(0)
-        , readySize(0)
-    {
-    }
-    virtual ~DLTaskInfoPriv() {}
+//class DLTaskInfoPriv : public QSharedData
+//{
+//public:
+//    DLTaskInfoPriv()
+////        : uid(QString())
+//        : downloadUrl(QString())
+//        , requestUrl(QString())
+//        , filePath(QString())
+//        , totalSize(0)
+//        , readySize(0)
+//    {
+//    }
+//    virtual ~DLTaskInfoPriv() {}
 
-//    QString uid;
-    QString downloadUrl;
-    QString requestUrl;
-    QString filePath;
-    qint64 totalSize;
-    quint64 readySize;
-    DLTaskPeerInfoList peerList;
-};
+////    QString uid;
+//    QString downloadUrl;
+//    QString requestUrl;
+//    QString filePath;
+//    qint64 totalSize;
+//    qint64 readySize;
+//    DLTaskPeerInfoList peerList;
+//};
 
 DLTaskInfo::DLTaskInfo()
-    : d(new DLTaskInfoPriv)
+    : d(new DLTaskInfoPriv())
 {
 
 }
@@ -53,7 +53,7 @@ bool DLTaskInfo::operator ==(const DLTaskInfo &other) const
             && d.data()->filePath == other.d.data()->filePath;
 }
 
-bool DLTaskInfo::operator !=(const DLTaskInfo &other)
+bool DLTaskInfo::operator !=(const DLTaskInfo &other) const
 {
     return !operator ==(other);
 }
@@ -73,8 +73,8 @@ bool DLTaskInfo::isEmpty() const
 
 void DLTaskInfo::clear()
 {
-    d.data()->downloadUrl.clear();
-    d.data()->filePath.clear();
+    d.data()->downloadUrl = QString();
+    d.data()->filePath = QString();
     d.data()->peerList.clear();
     d.data()->readySize = 0;
     d.data()->totalSize = 0;
@@ -111,7 +111,7 @@ qint64 DLTaskInfo::totalSize() const
     return d.data()->totalSize;
 }
 
-quint64 DLTaskInfo::readySize() const
+qint64 DLTaskInfo::readySize() const
 {
     return d.data()->readySize;
 }
@@ -146,7 +146,7 @@ void DLTaskInfo::setTotalSize(qint64 totalSize)
     d.data()->totalSize = totalSize;
 }
 
-void DLTaskInfo::setReadySize(quint64 readySize)
+void DLTaskInfo::setReadySize(qint64 readySize)
 {
     d.data()->readySize = readySize;
 }

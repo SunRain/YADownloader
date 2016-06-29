@@ -3,7 +3,7 @@
 
 #include <QUrl>
 #include <QHash>
-#include <QSharedPointer>
+#include <QSharedDataPointer>
 
 #include "yadownloader_global.h"
 
@@ -65,7 +65,7 @@ public:
 private:
     QUrl sortUrlQuery(const QUrl &url);
 private:
-    QSharedPointer<DLRequestPriv> d;
+    QSharedDataPointer<YADownloader::DLRequestPriv> d;
 };
 
 QDebug operator <<(QDebug dbg, const DLRequest& req);

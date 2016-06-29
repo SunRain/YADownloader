@@ -14,22 +14,22 @@
 
 namespace YADownloader {
 
-class DLTaskPeerInfoPriv : public QSharedData
-{
-public:
-    DLTaskPeerInfoPriv()
-        : startIndex(0)
-        , endIndex(0)
-        , completedCount(0)
-        , filePath(QString())
-    {
-    }
-    virtual ~DLTaskPeerInfoPriv() {}
-    quint64 startIndex;     //起始块
-    quint64 endIndex;       //结束块
-    quint64 completedCount; //完成块数
-    QString filePath; //full path of file
-};
+//class DLTaskPeerInfoPriv : public QSharedData
+//{
+//public:
+//    DLTaskPeerInfoPriv()
+//        : startIndex(0)
+//        , endIndex(0)
+//        , completedCount(0)
+//        , filePath(QString())
+//    {
+//    }
+//    virtual ~DLTaskPeerInfoPriv() {}
+//    quint64 startIndex;     //起始块
+//    quint64 endIndex;       //结束块
+//    quint64 completedCount; //完成块数
+//    QString filePath; //full path of file
+//};
 
 DLTaskPeerInfo::DLTaskPeerInfo()
     : d(new DLTaskPeerInfoPriv())
@@ -50,11 +50,13 @@ bool DLTaskPeerInfo::operator ==(const DLTaskPeerInfo &other) const {
             && d.data()->startIndex == other.d.data()->startIndex;
 }
 
-bool DLTaskPeerInfo::operator !=(const DLTaskPeerInfo &other) {
+bool DLTaskPeerInfo::operator !=(const DLTaskPeerInfo &other) const
+{
     return !operator == (other);
 }
 
-DLTaskPeerInfo &DLTaskPeerInfo::operator =(const DLTaskPeerInfo &other) {
+DLTaskPeerInfo &DLTaskPeerInfo::operator =(const DLTaskPeerInfo &other)
+{
     if (this != &other)
         d.operator =(other.d);
     return *this;

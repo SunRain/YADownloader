@@ -4,7 +4,7 @@
 #include <QObject>
 #include <QReadWriteLock>
 #include <QMutex>
-#include <QSharedPointer>
+#include <QSharedDataPointer>
 #include "yadownloader_global.h"
 
 class QFile;
@@ -18,7 +18,7 @@ class DLTaskPeer;
 typedef QList<DLTaskPeer*> DLTaskPeerList;
 
 
-class DLTaskPeerInfoPriv;
+//class DLTaskPeerInfoPriv;
 class YADOWNLOADERSHARED_EXPORT DLTaskPeerInfo {
 public:
     DLTaskPeerInfo();
@@ -30,7 +30,7 @@ public:
     /// \return true if has same startIndex endIndex completedCount filePath
     ///
     bool operator ==(const DLTaskPeerInfo &other) const;
-    bool operator !=(const DLTaskPeerInfo &other);
+    bool operator !=(const DLTaskPeerInfo &other) const;
     DLTaskPeerInfo &operator =(const DLTaskPeerInfo &other);
 
     ///
@@ -58,7 +58,23 @@ protected:
     quint64 completedCount() const;
 
 private:
-    QSharedPointer<DLTaskPeerInfoPriv> d;
+    class DLTaskPeerInfoPriv : public QSharedData
+    {
+    public:
+        DLTaskPeerInfoPriv()
+            : startIndex(0)
+            , endIndex(0)
+            , completedCount(0)
+            , filePath(QString())
+        {
+        }
+        virtual ~DLTaskPeerInfoPriv() {}
+        quint64 startIndex;     //起始块
+        quint64 endIndex;       //结束块
+        quint64 completedCount; //完成块数
+        QString filePath; //full path of file
+    };
+    QSharedDataPointer<DLTaskPeerInfoPriv> d;
 };
 
 QDebug operator <<(QDebug dbg, const DLTaskPeerInfo& info);
