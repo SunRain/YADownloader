@@ -32,7 +32,7 @@ DLTransmissionDatabase::~DLTransmissionDatabase()
 
 void DLTransmissionDatabase::appendTaskInfo(const DLTaskInfo &info)
 {
-    m_infoHash.insert(info.requestUrl(), info);
+    m_infoHash.insert(info.requestUrl()+info.filePath(), info);
 }
 
 DLTaskInfoList DLTransmissionDatabase::list() const
@@ -86,7 +86,7 @@ void DLTransmissionDatabase::loadFromLocalStorage()
             plist.append(p);
         }
         info.setPeerList(plist);
-        m_infoHash.insert(info.requestUrl(), info);
+        m_infoHash.insert(info.requestUrl()+info.filePath(), info);
     }
     file.close();
 }

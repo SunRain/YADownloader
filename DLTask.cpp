@@ -6,8 +6,9 @@
 #include <QEventLoopLocker>
 #include <QTimer>
 #include <QCryptographicHash>
-
 #include <QFile>
+#include <QFileInfo>
+
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
@@ -39,6 +40,7 @@ DLTask::DLTask(DLTransmissionDatabase *db, const DLRequest &request, QObject *pa
     , m_dlRequest(request)
     , m_DLStatus(DL_STOP)
 //    , m_uid(QString())
+    , m_overwriteExistFile(false)
     , m_initHeaderCounts(3)
     , m_bytesFileSize(-1)
     , m_bytesDownloaded(0)
@@ -85,6 +87,16 @@ void DLTask::setRequest(const DLRequest &request) {
 
 DLRequest DLTask::request() const {
     return m_dlRequest;
+}
+
+bool DLTask::overwriteExistFile() const
+{
+    return m_overwriteExistFile;
+}
+
+void DLTask::setOverwriteExistFile(bool overwrite)
+{
+    m_overwriteExistFile = overwrite;
 }
 
 qint64 DLTask::bytesReceived() const
@@ -289,6 +301,33 @@ void DLTask::initTaskInfo()
             break;
         }
     }
+    QString fp = m_dlRequest.filePath();
+    QFile file(fp);
+    /// Exist download finished file
+    if (file.exists() && (m_dlTaskInfo.readySize() == m_dlTaskInfo.totalSize())) {
+        if (overwriteExistFile()) {
+            if (!file.remove()) {
+                qWarning()<<Q_FUNC_INFO<<"Try to remove exist file error, "<<file.errorString();
+            }
+        } else {
+            QFileInfo info(file);
+            QString dir = info.absoluteFilePath();
+            QString name = info.baseName();
+            QString suffix = info.completeSuffix();
+            QString nName = fp;
+            int tail = 0;
+            /// loop to find new suffix for file
+            do {
+                nName = QString("%1/%2-%3.%4").arg(dir).arg(name).arg(tail).arg(suffix);
+                tail++;
+            } while (QFile::exists(nName));
+
+            if (!nName.isEmpty()) {
+                m_dlRequest.setSaveName(QString("%1-%2.%3").arg(name).arg(tail).arg(suffix));
+            }
+        }
+        m_dlTaskInfo.clear();
+    }
 
     if (m_dlTaskInfo.isEmpty()) { //download new file
         int threadCount = m_dlRequest.preferThreadCount ();
@@ -376,12 +415,15 @@ void DLTask::managerFinish()
     saveInfo();
 
     QString fname = m_dlRequest.filePath();
-    QFile f(fname + PEER_TAG);
-    if (!f.exists()) {
+    if (!QFile::exists(fname + PEER_TAG) && !QFile::exists(fname)) {
         qWarning()<<Q_FUNC_INFO<<QString("Download finished, but we can't find tmp file [%1] now")
                     .arg(fname + PEER_TAG);
         return;
     }
+    if (QFile::exists(fname))
+        return;
+
+    QFile f(fname + PEER_TAG);
     if (f.size() != m_bytesFileSize && m_bytesFileSize > 0)
         qWarning()<<Q_FUNC_INFO<<QString("Download finished, but downloaded file size [%1], not equal as prefer size [%2]")
                     .arg(f.size()).arg(m_bytesDownloaded);

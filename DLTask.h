@@ -30,7 +30,25 @@ public:
 
     virtual ~DLTask();
 
+    ///
+    /// \brief request
+    /// \return DLRequest of current task, the DLRequest maybe modified by this task;
+    ///
     DLRequest request() const;
+
+    ///
+    /// \brief
+    /// \return
+    ///
+    bool overwriteExistFile() const;
+
+    ///
+    /// \brief setOverwriteExistFile
+    /// \param overwrite
+    /// If set to True, if target file exist, file will be overwirted,
+    /// Otherwise, will add suffix in targe file
+    ///
+    void setOverwriteExistFile(bool overwrite);
 
     ///
     /// \brief bytesReceived
@@ -114,6 +132,7 @@ private:
     QHash<QString, quint64> m_dlCompletedCountHash;//completedCount
 //    QString m_uid;
 
+    bool m_overwriteExistFile;
     int m_initHeaderCounts;
 //    int m_peerCount;            //分解的数据块量
 //    int m_peerSize;             //每个数据块大小

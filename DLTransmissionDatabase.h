@@ -28,6 +28,9 @@ private:
     void saveToLocalStorage();
 
 private:
+    ///
+    /// \brief m_infoHash key is DLTaskInfo.requestUrl()+DLTaskInfo.filePath()
+    ///
     QHash<QString, DLTaskInfo> m_infoHash;
     QString m_cfgFile;
 
