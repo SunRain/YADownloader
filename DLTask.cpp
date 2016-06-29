@@ -40,9 +40,10 @@ DLTask::DLTask(DLTransmissionDatabase *db, const DLRequest &request, QObject *pa
     , m_DLStatus(DL_STOP)
 //    , m_uid(QString())
     , m_initHeaderCounts(3)
-    , m_totalSize(-1)
-    , m_downloadedSize(0)
-    , m_dlBytesReceived(0)
+    , m_bytesFileSize(-1)
+    , m_bytesDownloaded(0)
+    , m_bytesReceived(0)
+    , m_bytesStartFileOffest(0)
 {
     connect (m_workerThread, &QThread::finished, [&]() {
         qDebug()<<Q_FUNC_INFO<<"<<<<<<<<<<<<<<<<<  m_workerThread finished";
@@ -86,6 +87,26 @@ DLRequest DLTask::request() const {
     return m_dlRequest;
 }
 
+qint64 DLTask::bytesReceived() const
+{
+    return m_bytesReceived;
+}
+
+qint64 DLTask::bytesDownloaded() const
+{
+    return m_bytesDownloaded;
+}
+
+qint64 DLTask::bytesFileSize() const
+{
+    return m_bytesFileSize;
+}
+
+qint64 DLTask::bytesStartOffest() const
+{
+    return m_bytesStartFileOffest;
+}
+
 QString DLTask::uid() const
 {
     return calculateUID();
@@ -96,9 +117,9 @@ bool DLTask::event(QEvent *event)
     if (event->type() == DLTASK_EVENT_FILE_SIZE) {
         qDebug()<<Q_FUNC_INFO<<"========== FileSizeEvent";
         FileSizeEvent *e = (FileSizeEvent*)event;
-        m_totalSize = e->fileSize();
-        qDebug()<<Q_FUNC_INFO<<" file size "<<m_totalSize;
-        emit initFileSize(m_totalSize);
+        m_bytesFileSize = e->fileSize();
+        qDebug()<<Q_FUNC_INFO<<" file size "<<m_bytesFileSize;
+        emit initFileSize(m_bytesFileSize);
         if (m_DLStatus == DL_START) {
             if (!m_workerThread->isRunning ())
                 m_workerThread->start ();
@@ -114,23 +135,23 @@ bool DLTask::event(QEvent *event)
         DLProgressEvent *e = (DLProgressEvent*)event;
         QString hash = e->hash();
         qint64 dlcnt = e->downloadedCount();
-        m_dlBytesReceived += e->bytesReceived();
+        m_bytesReceived += e->bytesReceived();
         m_dlCompletedCountHash.insert(hash, dlcnt);
         quint64 d =0;
         foreach (quint64 i, m_dlCompletedCountHash.values()) {
             d += i;
         }
-        m_downloadedSize = d;//m_dlBytesFileOffest + d;
+        m_bytesDownloaded = d;//m_dlBytesFileOffest + d;
 //        qDebug()<<Q_FUNC_INFO<<" hash "<<hash<<" dlcnt "<<dlcnt<<" total "<<m_totalSize
 //               <<" bytesReceived "<<e->bytesReceived();
 
 //        qDebug()<<Q_FUNC_INFO<<">>> "<<m_dlCompletedHash;
 
-        m_dlTaskInfo.setReadySize(m_downloadedSize);
-        qDebug()<<Q_FUNC_INFO<<"downloadProgress downloadedSize "<<m_downloadedSize
-               <<" totalSize "<<m_totalSize
-               <<" percent "<<(float)m_downloadedSize/(float)m_totalSize;
-        emit downloadProgress(m_downloadedSize, m_totalSize);
+        m_dlTaskInfo.setReadySize(m_bytesDownloaded);
+        qDebug()<<Q_FUNC_INFO<<"downloadProgress downloadedSize "<<m_bytesDownloaded
+               <<" totalSize "<<m_bytesFileSize
+               <<" percent "<<(float)m_bytesDownloaded/(float)m_bytesFileSize;
+        emit downloadProgress(m_bytesReceived, m_bytesDownloaded, m_bytesFileSize);
         return true;
     }
     if (event->type() == DLTASK_EVENT_DL_STATUS) {
@@ -193,7 +214,7 @@ void DLTask::resume()
         return;
     }
     m_DLStatus = DL_START;
-    if (m_totalSize <= 0) {
+    if (m_bytesFileSize <= 0) {
         start();
     } else {
         initTaskInfo();
@@ -207,7 +228,7 @@ void DLTask::download()
     DLTaskPeerInfoList peerInfoList = m_dlTaskInfo.peerList();
     foreach (DLTaskPeerInfo info, peerInfoList) {
 //        m_downloadedSize += info.dlCompleted();
-        m_dlBytesFileOffest += info.dlCompleted();
+        m_bytesStartFileOffest += info.dlCompleted();
 
 
         ///NOTE we still start a new request as we need to save the request infomation into local storage
@@ -225,7 +246,7 @@ void DLTask::download()
         ///NOTE if Range is not supported by remote server or we can't get remote file size,
         /// we DISABLE resume downloading
         /// Need forther codeing
-        if (m_totalSize > 0) {
+        if (m_bytesFileSize > 0) {
             QString range = QString("bytes=%1-%2").arg(info.rangeStart()).arg(info.endIndex());
             req.setRawHeader ("Range", range.toUtf8 ());
         }
@@ -255,7 +276,7 @@ QString DLTask::calculateUID() const
 
 void DLTask::initTaskInfo()
 {
-    if (m_totalSize <= 0) { //We can't get downloaded file size, so we should use 1 thread to download
+    if (m_bytesFileSize <= 0) { //We can't get downloaded file size, so we should use 1 thread to download
         m_dlRequest.setPreferThreadCount (1);
     }
     m_dlTaskInfo.clear();
@@ -263,7 +284,7 @@ void DLTask::initTaskInfo()
         if (QUrl(info.requestUrl()) == m_dlRequest.requestUrl()
 //                && info.downloadUrl() == m_dlRequest.downloadUrl() //check if url redirected
                 && info.filePath() == m_dlRequest.filePath()
-                && info.totalSize() == m_totalSize) { //check if remote host file changed
+                && info.totalSize() == m_bytesFileSize) { //check if remote host file changed
             m_dlTaskInfo = info;
             break;
         }
@@ -271,7 +292,7 @@ void DLTask::initTaskInfo()
 
     if (m_dlTaskInfo.isEmpty()) { //download new file
         int threadCount = m_dlRequest.preferThreadCount ();
-        quint64 step = m_totalSize/threadCount;
+        quint64 step = m_bytesFileSize/threadCount;
         quint64 start = -step;
         quint64 end = 0;
         DLTaskPeerInfoList peerInfoList;
@@ -279,7 +300,7 @@ void DLTask::initTaskInfo()
             end += step;
             start += step;
             if (index == threadCount) {
-                end = m_totalSize;
+                end = m_bytesFileSize;
             }
             DLTaskPeerInfo pInfo;
             pInfo.setStartIndex(start);
@@ -293,7 +314,7 @@ void DLTask::initTaskInfo()
         m_dlTaskInfo.setPeerList(peerInfoList);
         m_dlTaskInfo.setReadySize(0);
         m_dlTaskInfo.setRequestUrl(m_dlRequest.requestUrl().toString());
-        m_dlTaskInfo.setTotalSize(m_totalSize);
+        m_dlTaskInfo.setTotalSize(m_bytesFileSize);
         m_transDB->appendTaskInfo(m_dlTaskInfo);
         m_transDB->flush();
     } /*else { // continue to download
@@ -304,9 +325,9 @@ void DLTask::initTaskInfo()
         }
         m_dlRequest.setPreferThreadCount(peerInfoList.size());
     }*/
-    m_downloadedSize = m_dlTaskInfo.readySize();
-    m_dlBytesReceived = 0;
-    m_dlBytesFileOffest = 0;
+    m_bytesDownloaded = m_dlTaskInfo.readySize();
+    m_bytesReceived = 0;
+    m_bytesStartFileOffest = 0;
 }
 
 void DLTask::saveInfo()
@@ -319,7 +340,7 @@ void DLTask::saveInfo()
         list.append(info);
     }
     m_dlTaskInfo.setPeerList(list);
-    m_dlTaskInfo.setReadySize(m_downloadedSize);
+    m_dlTaskInfo.setReadySize(m_bytesDownloaded);
     m_transDB->appendTaskInfo(m_dlTaskInfo);
     m_transDB->flush();
 }
@@ -361,9 +382,9 @@ void DLTask::managerFinish()
                     .arg(fname + PEER_TAG);
         return;
     }
-    if (f.size() != m_totalSize && m_totalSize > 0)
+    if (f.size() != m_bytesFileSize && m_bytesFileSize > 0)
         qWarning()<<Q_FUNC_INFO<<QString("Download finished, but downloaded file size [%1], not equal as prefer size [%2]")
-                    .arg(f.size()).arg(m_downloadedSize);
+                    .arg(f.size()).arg(m_bytesDownloaded);
 
     if (!f.rename(fname))
         qWarning()<<Q_FUNC_INFO<<"Rename download file error "<<f.errorString();

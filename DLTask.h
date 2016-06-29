@@ -33,6 +33,30 @@ public:
     DLRequest request() const;
 
     ///
+    /// \brief bytesReceived
+    /// \return bytes of downloaded data since start
+    ///
+    qint64 bytesReceived() const;
+
+    ///
+    /// \brief bytesDownloaded
+    /// \return bytes of ALL downloaded data
+    ///
+    qint64 bytesDownloaded() const;
+
+    ///
+    /// \brief bytesFileSize
+    /// \return bytes of file
+    ///
+    qint64 bytesFileSize() const;
+
+    ///
+    /// \brief bytesStartOffest
+    /// \return bytes of allready downloaded file size when start or continue download
+    ///
+    qint64 bytesStartOffest() const;
+
+    ///
     /// \brief uid unique ID of task
     /// \return
     ///
@@ -51,7 +75,7 @@ protected:
 
 signals:
     void initFileSize(qint64 fileSize);
-    void downloadProgress(qint64 bytesReceived, qint64 bytesTotal);
+    void downloadProgress(qint64 bytesReceived, qint64 bytesDownloaded, qint64 bytesFileSize);
     void statusChanged(TaskStatus status);
 
 public slots:
@@ -93,11 +117,11 @@ private:
     int m_initHeaderCounts;
 //    int m_peerCount;            //分解的数据块量
 //    int m_peerSize;             //每个数据块大小
-    qint64 m_totalSize;        //文件总大小
-    qint64 m_downloadedSize;   //文件已经下载的大小
+    qint64 m_bytesFileSize;        //文件总大小
+    qint64 m_bytesDownloaded;   //文件已经下载的大小
 //    qint64 m_dlBytesWhenStarted; //had beend downloadeded size when started
-    qint64 m_dlBytesReceived; //downloaded size since start
-    qint64 m_dlBytesFileOffest; //downloadeded file size when start
+    qint64 m_bytesReceived; //downloaded size since start
+    qint64 m_bytesStartFileOffest; //downloadeded file size when start
 };
 
 
