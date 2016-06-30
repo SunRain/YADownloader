@@ -301,34 +301,76 @@ void DLTask::initTaskInfo()
             break;
         }
     }
-    QString fp = m_dlRequest.filePath();
-    QFile file(fp);
-    /// Exist download finished file
-    if (file.exists() && (m_dlTaskInfo.readySize() == m_dlTaskInfo.totalSize())) {
-        if (overwriteExistFile()) {
-            if (!file.remove()) {
-                qWarning()<<Q_FUNC_INFO<<"Try to remove exist file error, "<<file.errorString();
-            }
-        } else {
-            QFileInfo info(file);
-            QString dir = info.absoluteFilePath();
-            QString name = info.baseName();
-            QString suffix = info.completeSuffix();
-            QString nName = fp;
-            int tail = 0;
-            /// loop to find new suffix for file
-            do {
-                nName = QString("%1/%2-%3.%4").arg(dir).arg(name).arg(tail).arg(suffix);
-                tail++;
-            } while (QFile::exists(nName));
 
-            if (!nName.isEmpty()) {
-                m_dlRequest.setSaveName(QString("%1-%2.%3").arg(name).arg(tail).arg(suffix));
+    /// If we find task info in database
+    if (!m_dlTaskInfo.isEmpty()) {
+        /// Exist download finished
+        if (QFile::exists(m_dlTaskInfo.filePath())) {
+            m_dlTaskInfo.clear();
+            QFile file(m_dlRequest.filePath());
+            if (overwriteExistFile()) {
+                if (!file.remove()) {
+                    qWarning()<<Q_FUNC_INFO<<"Try to remove exist file error, "<<file.errorString();
+                }
+            } else {
+                QFileInfo info(file);
+                QString dir = info.absolutePath();
+                QString name = info.baseName();
+                QString suffix = info.completeSuffix();
+                QString nName = m_dlRequest.filePath();
+                int tail = 0;
+                /// loop to find new suffix for file
+                ///
+                /// We check real target file name (means name without PEER_TAG),
+                /// this means, if there's a running && not finished (but current stopped) download task,
+                /// current new request will point to this task
+                do {
+                    nName = QString("%1/%2-%3.%4").arg(dir).arg(name).arg(tail).arg(suffix);
+                    tail++;
+                } while (QFile::exists(nName));
+
+                if (!nName.isEmpty()) {
+                    m_dlRequest.setSaveName(QString("%1-%2.%3").arg(name).arg(tail).arg(suffix));
+                }
+//                qDebug()<<Q_FUNC_INFO<<"............. new request "<<m_dlRequest;
+
+                /// We lookup database to find if there's exist task again
+                foreach (DLTaskInfo info, m_transDB->list()) {
+                    if (QUrl(info.requestUrl()) == m_dlRequest.requestUrl()
+                            && info.filePath() == m_dlRequest.filePath()
+                            && info.totalSize() == m_bytesFileSize) {
+                        m_dlTaskInfo = info;
+//                        qDebug()<<Q_FUNC_INFO<<"++++++++++++= find exit task "<<m_dlTaskInfo;
+                        break;
+                    }
+                }
+                /// We find an exist task in database,
+                /// Then we need to check if traget temp file was removed
+                /// IF target tmp file was removed, we need to reset its peer info to start a new dl
+                if (!m_dlTaskInfo.isEmpty() && !QFile::exists(m_dlTaskInfo.filePath()+PEER_TAG)) {
+//                    qDebug()<<Q_FUNC_INFO<<"Reset peer for "<<m_dlTaskInfo;
+                    DLTaskPeerInfoList list;
+                    foreach (DLTaskPeerInfo i, m_dlTaskInfo.peerList()) {
+                        i.setCompletedCount(0);
+                        list.append(i);
+                    }
+                    m_dlTaskInfo.setPeerList(list);
+                }
+            }
+        } else { /// Exist download not finished
+
+            /// Download not finished, but tmp file was removed
+            /// We need to reset its peer info to start a new dl
+            if (!QFile::exists(m_dlTaskInfo.filePath()+PEER_TAG)) {
+                DLTaskPeerInfoList list;
+                foreach (DLTaskPeerInfo i, m_dlTaskInfo.peerList()) {
+                    i.setCompletedCount(0);
+                    list.append(i);
+                }
+                m_dlTaskInfo.setPeerList(list);
             }
         }
-        m_dlTaskInfo.clear();
     }
-
     if (m_dlTaskInfo.isEmpty()) { //download new file
         int threadCount = m_dlRequest.preferThreadCount ();
         quint64 step = m_bytesFileSize/threadCount;
@@ -354,16 +396,12 @@ void DLTask::initTaskInfo()
         m_dlTaskInfo.setReadySize(0);
         m_dlTaskInfo.setRequestUrl(m_dlRequest.requestUrl().toString());
         m_dlTaskInfo.setTotalSize(m_bytesFileSize);
+    }
+    if (!m_dlTaskInfo.isEmpty()) {
         m_transDB->appendTaskInfo(m_dlTaskInfo);
         m_transDB->flush();
-    } /*else { // continue to download
-        DLTaskPeerInfoList list = m_dlTaskInfo.peerList();
-        foreach (DLTaskPeerInfo i, list) {
-            i.setFilePath(m_dlTaskInfo.filePath() + PEER_TAG);
-            peerInfoList.append(i);
-        }
-        m_dlRequest.setPreferThreadCount(peerInfoList.size());
-    }*/
+    }
+
     m_bytesDownloaded = m_dlTaskInfo.readySize();
     m_bytesReceived = 0;
     m_bytesStartFileOffest = 0;
