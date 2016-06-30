@@ -119,10 +119,10 @@ qint64 DLTask::bytesStartOffest() const
     return m_bytesStartFileOffest;
 }
 
-QString DLTask::uid() const
-{
-    return calculateUID();
-}
+//QString DLTask::uid() const
+//{
+//    return calculateUID();
+//}
 
 bool DLTask::event(QEvent *event)
 {
@@ -280,11 +280,11 @@ void DLTask::download()
 //    emitStatus();
 }
 
-QString DLTask::calculateUID() const
-{
-    QString str = m_dlRequest.requestUrl().toString() + m_dlRequest.filePath()/* + m_dlRequest.downloadUrl().toString()*/;
-    return QString(QCryptographicHash::hash(str.toUtf8(), QCryptographicHash::Md5).toHex());
-}
+//QString DLTask::calculateUID() const
+//{
+//    QString str = m_dlRequest.requestUrl().toString() + m_dlRequest.filePath()/* + m_dlRequest.downloadUrl().toString()*/;
+//    return QString(QCryptographicHash::hash(str.toUtf8(), QCryptographicHash::Md5).toHex());
+//}
 
 void DLTask::initTaskInfo()
 {

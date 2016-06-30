@@ -78,7 +78,7 @@ public:
     /// \brief uid unique ID of task
     /// \return
     ///
-    QString uid() const;
+//    QString uid() const;
 
     TaskStatus status() const;
 
@@ -103,7 +103,7 @@ public slots:
     void resume();
 
 private:
-    QString calculateUID() const;
+//    QString calculateUID() const;
     void initTaskInfo();
     void download();
     void saveInfo();
