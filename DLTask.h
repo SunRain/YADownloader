@@ -75,10 +75,11 @@ public:
     qint64 bytesStartOffest() const;
 
     ///
-    /// \brief uid unique ID of task
+    /// \brief uuid unique ID of task
+    /// UUID is calculated in DLTask constructe function and never changed in class life-cycle
     /// \return
     ///
-//    QString uid() const;
+    QString uuid() const;
 
     TaskStatus status() const;
 
@@ -130,7 +131,7 @@ private:
     DLTaskInfo m_dlTaskInfo;
 
     QHash<QString, quint64> m_dlCompletedCountHash;//completedCount
-//    QString m_uid;
+    QString m_uuid;
 
     bool m_overwriteExistFile;
     int m_initHeaderCounts;

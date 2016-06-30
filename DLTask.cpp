@@ -8,6 +8,7 @@
 #include <QCryptographicHash>
 #include <QFile>
 #include <QFileInfo>
+#include <QUuid>
 
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -39,7 +40,6 @@ DLTask::DLTask(DLTransmissionDatabase *db, const DLRequest &request, QObject *pa
     , m_transDB(db)
     , m_dlRequest(request)
     , m_DLStatus(DL_STOP)
-//    , m_uid(QString())
     , m_overwriteExistFile(false)
     , m_initHeaderCounts(3)
     , m_bytesFileSize(-1)
@@ -47,6 +47,9 @@ DLTask::DLTask(DLTransmissionDatabase *db, const DLRequest &request, QObject *pa
     , m_bytesReceived(0)
     , m_bytesStartFileOffest(0)
 {
+    QString value = QUuid::createUuid().toString() + m_dlRequest.requestUrl().toString();
+    m_uuid = QString(QCryptographicHash::hash(value.toUtf8(), QCryptographicHash::Md5).toHex());
+
     connect (m_workerThread, &QThread::finished, [&]() {
         qDebug()<<Q_FUNC_INFO<<"<<<<<<<<<<<<<<<<<  m_workerThread finished";
         abort();
@@ -119,10 +122,10 @@ qint64 DLTask::bytesStartOffest() const
     return m_bytesStartFileOffest;
 }
 
-//QString DLTask::uid() const
-//{
-//    return calculateUID();
-//}
+QString DLTask::uuid() const
+{
+    return m_uuid;
+}
 
 bool DLTask::event(QEvent *event)
 {
