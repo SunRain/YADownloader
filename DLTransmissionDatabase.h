@@ -21,6 +21,10 @@ public:
     void removeTaskInfo(const DLTaskInfo &info);
     void appendTaskInfo(const DLTaskInfo &info);
 
+    ///
+    /// \brief list
+    /// \return list of all resumable DLTaskInfo
+    ///
     DLTaskInfoList list() const;
 
     void flush();

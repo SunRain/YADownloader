@@ -5,6 +5,7 @@
 #include "yadownloader_global.h"
 #include "SingletonPointer.h"
 #include "DLRequest.h"
+#include "DLTaskInfo.h"
 
 namespace YADownloader {
 
@@ -19,6 +20,12 @@ public:
     virtual ~DLTaskAccessMgr();
 
     DLTask *get(const DLRequest &request);
+
+    ///
+    /// \brief resumables
+    /// \return list of all resumable DLTaskInfo
+    ///
+    DLTaskInfoList resumables() const;
 
 private:
     DLTransmissionDatabase *m_transDB;

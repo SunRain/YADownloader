@@ -28,6 +28,11 @@ DLTask *DLTaskAccessMgr::get(const DLRequest &request)
     return task;
 }
 
+DLTaskInfoList DLTaskAccessMgr::resumables() const
+{
+    return m_transDB->list();
+}
+
 
 
 } //YADownloader
