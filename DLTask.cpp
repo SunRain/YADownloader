@@ -141,7 +141,8 @@ bool DLTask::event(QEvent *event)
             if (m_peerList.isEmpty ()) {
                 initTaskInfo();
                 download();
-                emitStatus();
+//                emitStatus();
+                m_dispatch->dispatchDownloadStatus(m_uuid, DLStatusEvent::DLStatus::DL_START, false);
             }
         }
         return true;
@@ -178,9 +179,22 @@ bool DLTask::event(QEvent *event)
             if (status == DLStatusEvent::DLStatus::DL_FINISH) {
                 if (allPeerCompleted()) {
                     managerFinish();
-                    emitStatus();
+                    m_dispatch->dispatchDownloadStatus(hash, DLStatusEvent::DLStatus::DL_FINISH, false);
                 }
             }
+        } else {
+            if (status == DLStatusEvent::DLStatus::DL_FAILURE) {
+                m_DLStatus == DL_FAILURE;
+            } else if (status == DLStatusEvent::DLStatus::DL_FINISH) {
+                m_DLStatus == DL_FINISH;
+            } else if (status == DLStatusEvent::DLStatus::DL_PROGRESSING) {
+                //TODO dummy
+            } else if (status == DLStatusEvent::DLStatus::DL_START) {
+                m_DLStatus == DL_START;
+            } else if (status == DLStatusEvent::DLStatus::DL_STOP) {
+                m_DLStatus == DL_STOP;
+            }
+            emit statusChanged(m_DLStatus);
         }
 
         return true;
@@ -215,7 +229,7 @@ void DLTask::abort()
         qDeleteAll(m_peerList);
         m_peerList.clear();
     }
-    emitStatus();
+    emit statusChanged(m_DLStatus);
 }
 
 void DLTask::suspend()
@@ -235,7 +249,7 @@ void DLTask::resume()
     } else {
         initTaskInfo();
         download();
-        emitStatus();
+        emit statusChanged(m_DLStatus);
     }
 }
 

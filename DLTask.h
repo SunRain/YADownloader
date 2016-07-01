@@ -108,9 +108,9 @@ private:
     void initTaskInfo();
     void download();
     void saveInfo();
-    inline void emitStatus() {
-        emit statusChanged(m_DLStatus);
-    }
+//    inline void emitStatus() {
+//        emit statusChanged(m_DLStatus);
+//    }
     bool peerCompleted(const DLTaskPeerInfo &info);
     bool allPeerCompleted();
     void managerFinish();
