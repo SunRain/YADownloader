@@ -272,6 +272,11 @@ qint64 DLTaskPeer::doneCount() const {
     return m_doneCount;
 }
 
+bool DLTaskPeer::isFinished() const
+{
+    return m_reply->isFinished();
+}
+
 void DLTaskPeer::setDoneCount(const quint64 &doneCount) {
     m_locker.lock();
     m_doneCount = doneCount;

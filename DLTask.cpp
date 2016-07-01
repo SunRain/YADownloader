@@ -60,7 +60,7 @@ DLTask::~DLTask()
 {
     qDebug()<<Q_FUNC_INFO<<"===========";
 
-    if(m_DLStatus != DL_STOP) {
+    if(m_DLStatus != DL_STOP || m_DLStatus != DL_FINISH) {
         abort();
     }
 
@@ -184,15 +184,15 @@ bool DLTask::event(QEvent *event)
             }
         } else {
             if (status == DLStatusEvent::DLStatus::DL_FAILURE) {
-                m_DLStatus == DL_FAILURE;
+                m_DLStatus = DL_FAILURE;
             } else if (status == DLStatusEvent::DLStatus::DL_FINISH) {
-                m_DLStatus == DL_FINISH;
+                m_DLStatus = DL_FINISH;
             } else if (status == DLStatusEvent::DLStatus::DL_PROGRESSING) {
                 //TODO dummy
             } else if (status == DLStatusEvent::DLStatus::DL_START) {
-                m_DLStatus == DL_START;
+                m_DLStatus = DL_START;
             } else if (status == DLStatusEvent::DLStatus::DL_STOP) {
-                m_DLStatus == DL_STOP;
+                m_DLStatus = DL_STOP;
             }
             emit statusChanged(m_DLStatus);
         }
@@ -309,6 +309,12 @@ void DLTask::initTaskInfo()
     if (m_bytesFileSize <= 0) { //We can't get downloaded file size, so we should use 1 thread to download
         m_dlRequest.setPreferThreadCount (1);
     }
+    /// FIX
+    /// As we remove finished task in database now, we need to check if target file is existing
+    m_dlRequest.setSaveName(adjustSaveName(m_dlRequest));
+
+    /// FIX
+    /// After adjusted save-name, check if resumable task available in database
     m_dlTaskInfo.clear();
     foreach (DLTaskInfo info, m_transDB->list()) {
         if (QUrl(info.requestUrl()) == m_dlRequest.requestUrl()
@@ -331,25 +337,8 @@ void DLTask::initTaskInfo()
                     qWarning()<<Q_FUNC_INFO<<"Try to remove exist file error, "<<file.errorString();
                 }
             } else {
-                QFileInfo info(file);
-                QString dir = info.absolutePath();
-                QString name = info.baseName();
-                QString suffix = info.completeSuffix();
-                QString nName = m_dlRequest.filePath();
-                int tail = 0;
-                /// loop to find new suffix for file
-                ///
-                /// We check real target file name (means name without PEER_TAG),
-                /// this means, if there's a running && not finished (but current stopped) download task,
-                /// current new request will point to this task
-                do {
-                    nName = QString("%1/%2-%3.%4").arg(dir).arg(name).arg(tail).arg(suffix);
-                    tail++;
-                } while (QFile::exists(nName));
+                m_dlRequest.setSaveName(adjustSaveName(m_dlRequest));
 
-                if (!nName.isEmpty()) {
-                    m_dlRequest.setSaveName(QString("%1-%2.%3").arg(name).arg(tail).arg(suffix));
-                }
 //                qDebug()<<Q_FUNC_INFO<<"............. new request "<<m_dlRequest;
 
                 /// We lookup database to find if there's exist task again
@@ -390,6 +379,11 @@ void DLTask::initTaskInfo()
         }
     }
     if (m_dlTaskInfo.isEmpty()) { //download new file
+
+        /// FIX
+        /// As we remove finished task in database now, we need to check if target file is existing
+        m_dlRequest.setSaveName(adjustSaveName(m_dlRequest));
+
         int threadCount = m_dlRequest.preferThreadCount ();
         quint64 step = m_bytesFileSize/threadCount;
         quint64 start = -step;
@@ -467,8 +461,29 @@ bool DLTask::allPeerCompleted()
 void DLTask::managerFinish()
 {
     qDebug()<<Q_FUNC_INFO<<">>>>>>>>>>>>>>>>>>>>>>>>> dl finish";
+
+    bool error = false;
+    foreach (DLTaskPeer *p, m_peerList) {
+        if (!p->isFinished()) {
+            error = true;
+            break;
+        }
+    }
+    if (error) {
+        qCritical()<<Q_FUNC_INFO<<"Manager finish error as some download peer not finish!!!";
+        return;
+    }
+    qDeleteAll(m_peerList);
+    m_peerList.clear();
+
+    if (m_workerThread->isRunning()) {
+        m_workerThread->quit();
+    }
+    m_workerThread->wait();
+
+    m_dlCompletedCountHash.clear();
+
     m_DLStatus = DL_FINISH;
-//    saveInfo();
     m_transDB->removeTaskInfo(m_dlTaskInfo);
     m_transDB->flush();
 
@@ -488,6 +503,31 @@ void DLTask::managerFinish()
 
     if (!f.rename(fname))
         qWarning()<<Q_FUNC_INFO<<"Rename download file error "<<f.errorString();
+}
+
+QString DLTask::adjustSaveName(const DLRequest &req)
+{
+    QString file = req.filePath();
+    if (!QFile::exists(file))
+        return req.saveName();
+
+    QFileInfo info(file);
+    QString dir = info.absolutePath();
+    QString name = info.baseName();
+    QString suffix = info.completeSuffix();
+    QString nName = req.filePath();
+    int tail = 0;
+    /// loop to find new suffix for file
+    ///
+    /// We check real target file name (means name without PEER_TAG),
+    /// this means, if there's a running && not finished (but current stopped) download task,
+    /// current new request will point to this task
+    do {
+        nName = QString("%1/%2-%3.%4").arg(dir).arg(name).arg(tail).arg(suffix);
+        tail++;
+    } while (QFile::exists(nName));
+
+    return QString("%1-%2.%3").arg(name).arg(tail).arg(suffix);
 }
 
 

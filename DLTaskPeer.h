@@ -101,6 +101,12 @@ public:
     ///
     qint64 doneCount() const;
 
+    ///
+    /// \brief isFinished
+    /// \return true when the download peer has finished or was aborted.
+    ///
+    bool isFinished() const;
+
 protected:
     void setDoneCount(const quint64 &doneCount);
 

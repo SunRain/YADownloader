@@ -114,6 +114,7 @@ private:
     bool peerCompleted(const DLTaskPeerInfo &info);
     bool allPeerCompleted();
     void managerFinish();
+    QString adjustSaveName(const DLRequest &req);
 
 private:
     QNetworkAccessManager *m_networkMgr;
