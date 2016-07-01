@@ -309,8 +309,8 @@ void DLTask::download()
     }
     if (!m_workerThread->isRunning())
         m_workerThread->start();
-
-//    emitStatus();
+    m_dlTaskInfo.setStatus(DLTaskInfo::STATUS_RUNNING);
+    m_dispatch->dispatchDLTaskInfo(m_uuid, m_dlTaskInfo);
 }
 
 //QString DLTask::calculateUID() const
@@ -425,6 +425,7 @@ void DLTask::initTaskInfo()
         m_dlTaskInfo.setTotalSize(m_bytesFileSize);
     }
     if (!m_dlTaskInfo.isEmpty()) {
+        m_dlTaskInfo.setStatus(DLTaskInfo::STATUS_STOP);
         m_transDB->appendTaskInfo(m_dlTaskInfo);
         m_transDB->flush();
     }

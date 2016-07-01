@@ -17,6 +17,12 @@ typedef QList<YADownloader::DLTaskInfo> DLTaskInfoList;
 class YADOWNLOADERSHARED_EXPORT DLTaskInfo
 {
 public:
+    enum TaskStatus {
+        STATUS_RUNNING = 0x0,
+        STATUS_WAITING,
+        STATUS_STOP
+    };
+
     DLTaskInfo();
     DLTaskInfo(const DLTaskInfo &other);
 
@@ -59,6 +65,8 @@ public:
 
     DLTaskPeerInfoList peerList() const;
 
+    TaskStatus status() const;
+
 //    void setHash(const QString &hash);
 
     void setDownloadUrl(const QString &downloadUrl);
@@ -73,6 +81,8 @@ public:
 
     void setPeerList(const DLTaskPeerInfoList &peerList);
 
+    void setStatus(TaskStatus status);
+
 private:
     class DLTaskInfoPriv : public QSharedData
     {
@@ -84,6 +94,7 @@ private:
             , filePath(QString())
             , totalSize(0)
             , readySize(0)
+            , status(DLTaskInfo::STATUS_STOP)
         {
         }
         virtual ~DLTaskInfoPriv() {}
@@ -95,6 +106,7 @@ private:
         qint64 totalSize;
         qint64 readySize;
         DLTaskPeerInfoList peerList;
+        DLTaskInfo::TaskStatus status;
     };
     QSharedDataPointer<DLTaskInfoPriv> d;
 };

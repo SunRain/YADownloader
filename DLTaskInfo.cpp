@@ -121,6 +121,11 @@ DLTaskPeerInfoList DLTaskInfo::peerList() const
     return d.data()->peerList;
 }
 
+DLTaskInfo::TaskStatus DLTaskInfo::status() const
+{
+    return d.data()->status;
+}
+
 //void DLTaskInfo::setHash(const QString &hash)
 //{
 //    d.data()->uid = hash;
@@ -158,6 +163,11 @@ void DLTaskInfo::setPeerList(const DLTaskPeerInfoList &peerList)
     d.data()->peerList = peerList;
 }
 
+void DLTaskInfo::setStatus(DLTaskInfo::TaskStatus status)
+{
+    d.data()->status = status;
+}
+
 QDebug operator <<(QDebug dbg, const YADownloader::DLTaskInfo &info)
 {
     QVariantHash hash;
@@ -175,7 +185,8 @@ QDebug operator <<(QDebug dbg, const YADownloader::DLTaskInfo &info)
         hash.insert(TASK_PEER_COMPLETED_CNT, p.dlCompleted());
         list.append(hash);
     }
-    hash.insert(TASK_INFO_PEER_LIST, list);
+    hash.insert(TASK_INFO_STATUS, QString::number(info.status()));
+
     return dbg<<hash;
 }
 
