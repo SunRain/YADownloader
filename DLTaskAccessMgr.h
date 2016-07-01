@@ -27,8 +27,8 @@ public:
     ///
     DLTaskInfoList resumables() const;
 
-private:
-    DLTransmissionDatabase *m_transDB;
+protected:
+    static DLTransmissionDatabase *getTransDB();
 
 };
 
