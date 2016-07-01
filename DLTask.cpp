@@ -92,6 +92,11 @@ DLRequest DLTask::request() const {
     return m_dlRequest;
 }
 
+DLTaskInfo DLTask::taskInfo() const
+{
+    return m_dlTaskInfo;
+}
+
 bool DLTask::overwriteExistFile() const
 {
     return m_overwriteExistFile;
@@ -167,6 +172,7 @@ bool DLTask::event(QEvent *event)
         qDebug()<<Q_FUNC_INFO<<"downloadProgress downloadedSize "<<m_bytesDownloaded
                <<" totalSize "<<m_bytesFileSize
                <<" percent "<<(float)m_bytesDownloaded/(float)m_bytesFileSize;
+        m_dispatch->dispatchDLTaskInfo(m_uuid, m_dlTaskInfo);
         emit downloadProgress(m_bytesReceived, m_bytesDownloaded, m_bytesFileSize);
         return true;
     }
@@ -197,6 +203,15 @@ bool DLTask::event(QEvent *event)
             emit statusChanged(m_DLStatus);
         }
 
+        return true;
+    }
+    if (event->type() == DLTASK_EVENT_DL_TASKINFO) {
+        DLTaskInfoEvent *e = (DLTaskInfoEvent *)event;
+        QString hash = e->hash();
+        DLTaskInfo m_dlTaskInfo = e->taskInfo();
+        if (hash == m_uuid) {
+            emit taskInfoChanged(m_dlTaskInfo);
+        }
         return true;
     }
     return QObject::event(event);
@@ -417,6 +432,8 @@ void DLTask::initTaskInfo()
     m_bytesDownloaded = m_dlTaskInfo.readySize();
     m_bytesReceived = 0;
     m_bytesStartFileOffest = 0;
+
+    m_dispatch->dispatchDLTaskInfo(m_uuid, m_dlTaskInfo);
 }
 
 void DLTask::saveInfo()
@@ -430,6 +447,7 @@ void DLTask::saveInfo()
     }
     m_dlTaskInfo.setPeerList(list);
     m_dlTaskInfo.setReadySize(m_bytesDownloaded);
+    m_dispatch->dispatchDLTaskInfo(m_uuid, m_dlTaskInfo);
     m_transDB->appendTaskInfo(m_dlTaskInfo);
     m_transDB->flush();
 }

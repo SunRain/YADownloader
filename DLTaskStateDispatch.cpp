@@ -11,12 +11,14 @@ FileSizeEvent::FileSizeEvent(qint64 fileSize)
 
 }
 
-
-
 qint64 FileSizeEvent::fileSize() const
 {
     return m_fileSize;
 }
+
+/**************************************************************************************************
+ *                                                                                                *
+ **************************************************************************************************/
 
 DLProgressEvent::DLProgressEvent(const QString &hash, qint64 bytesReceived, qint64 downloadedCnt, qint64 bytesTotal)
     : QEvent((QEvent::Type)DLTASK_EVENT_DL_PROGRESS)
@@ -47,6 +49,10 @@ qint64 DLProgressEvent::downloadedCount() const
     return m_dlCnt;
 }
 
+/**************************************************************************************************
+ *                                                                                                *
+ **************************************************************************************************/
+
 DLStatusEvent::DLStatusEvent(const QString &hash, DLStatus status, bool isTaskPeerEvent)
     : QEvent((QEvent::Type)DLTASK_EVENT_DL_STATUS)
     , m_isTaskPeer(isTaskPeerEvent)
@@ -70,6 +76,32 @@ DLStatusEvent::DLStatus DLStatusEvent::status() const
 {
     return m_status;
 }
+
+/**************************************************************************************************
+ *                                                                                                *
+ **************************************************************************************************/
+
+DLTaskInfoEvent::DLTaskInfoEvent(const QString &hash, const DLTaskInfo &info)
+    : QEvent((QEvent::Type)DLTASK_EVENT_DL_TASKINFO)
+    , m_hash(hash)
+    , m_info(info)
+{
+
+}
+
+QString DLTaskInfoEvent::hash() const
+{
+    return m_hash;
+}
+
+DLTaskInfo DLTaskInfoEvent::taskInfo() const
+{
+    return m_info;
+}
+
+/**************************************************************************************************
+ *                                                                                                *
+ **************************************************************************************************/
 
 DLTaskStateDispatch::DLTaskStateDispatch(QObject *parent)
     : QObject(parent)
@@ -100,6 +132,13 @@ void DLTaskStateDispatch::dispatchDownloadStatus(const QString &hash, DLStatusEv
 {
     m_locker.lock();
     qApp->postEvent(parent(), new DLStatusEvent(hash, status, isTaskPeerEvent));
+    m_locker.unlock();
+}
+
+void DLTaskStateDispatch::dispatchDLTaskInfo(const QString &hash, const DLTaskInfo &info)
+{
+    m_locker.lock();
+    qApp->postEvent(parent(), new DLTaskInfoEvent(hash, info));
     m_locker.unlock();
 }
 

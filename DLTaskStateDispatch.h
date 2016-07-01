@@ -5,12 +5,15 @@
 #include <QMutex>
 #include <qcoreevent.h>
 
+#include "DLTaskInfo.h"
+
 namespace YADownloader {
 
 const static int DLTASK_EVENT_INNER = QEvent::Type(QEvent::User);
 const static int DLTASK_EVENT_FILE_SIZE = QEvent::Type(QEvent::User+1);
 const static int DLTASK_EVENT_DL_PROGRESS = QEvent::Type(QEvent::User+2);
 const static int DLTASK_EVENT_DL_STATUS = QEvent::Type(QEvent::User+3);
+const static int DLTASK_EVENT_DL_TASKINFO = QEvent::Type(QEvent::User+4);
 
 class FileSizeEvent : public QEvent
 {
@@ -21,6 +24,10 @@ public:
 private:
     qint64 m_fileSize;
 };
+
+/**************************************************************************************************
+ *                                                                                                *
+ **************************************************************************************************/
 
 class DLProgressEvent : public QEvent
 {
@@ -37,6 +44,10 @@ private:
     qint64 m_bt;
     qint64 m_dlCnt;
 };
+
+/**************************************************************************************************
+ *                                                                                                *
+ **************************************************************************************************/
 
 class DLStatusEvent : public QEvent
 {
@@ -59,6 +70,26 @@ private:
     DLStatus m_status;
 };
 
+/**************************************************************************************************
+ *                                                                                                *
+ **************************************************************************************************/
+
+class DLTaskInfoEvent : public QEvent
+{
+public:
+    explicit DLTaskInfoEvent(const QString &hash, const DLTaskInfo &info);
+    virtual ~DLTaskInfoEvent() {}
+    QString hash() const;
+    DLTaskInfo taskInfo() const;
+private:
+    QString m_hash;
+    DLTaskInfo m_info;
+};
+
+/**************************************************************************************************
+ *                                                                                                *
+ **************************************************************************************************/
+
 class DLTaskStateDispatch : public QObject
 {
     Q_OBJECT
@@ -78,6 +109,8 @@ public:
     void dispatchDownloadProgress(const QString &hash, qint64 bytesReceived, qint64 downloadedCnt, qint64 bytesTotal);
 
     void dispatchDownloadStatus(const QString &hash, DLStatusEvent::DLStatus status, bool isTaskPeerEvent);
+
+    void dispatchDLTaskInfo(const QString &hash, const DLTaskInfo &info);
 private:
     QMutex m_locker;
 };

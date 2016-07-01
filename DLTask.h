@@ -37,6 +37,12 @@ public:
     DLRequest request() const;
 
     ///
+    /// \brief taskInfo
+    /// \return currrent DLTaskInfo
+    /// Current DLTaskInfo may changed in DLTask life-cycle
+    DLTaskInfo taskInfo() const;
+
+    ///
     /// \brief
     /// \return
     ///
@@ -96,6 +102,7 @@ signals:
     void initFileSize(qint64 fileSize);
     void downloadProgress(qint64 bytesReceived, qint64 bytesDownloaded, qint64 bytesFileSize);
     void statusChanged(TaskStatus status);
+    void taskInfoChanged(const DLTaskInfo &info);
 
 public slots:
     void start();
