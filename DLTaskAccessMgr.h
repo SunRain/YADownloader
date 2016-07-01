@@ -30,6 +30,9 @@ public:
 protected:
     static DLTransmissionDatabase *getTransDB();
 
+signals:
+    void resumablesChanged(const DLTaskInfoList &list);
+
 };
 
 } //YADownloader

@@ -12,11 +12,14 @@ namespace YADownloader {
 DLTaskAccessMgr::DLTaskAccessMgr(QObject *parent)
     : QObject(parent)
 {
-
+    connect(getTransDB(), &DLTransmissionDatabase::listChanged, [&]() {
+        emit resumablesChanged(getTransDB()->list());
+    });
 }
 
 DLTaskAccessMgr::~DLTaskAccessMgr()
 {
+    disconnect(getTransDB(), 0, 0, 0);
 }
 
 DLTask *DLTaskAccessMgr::get(const DLRequest &request)

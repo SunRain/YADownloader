@@ -22,6 +22,7 @@ DLTransmissionDatabase::DLTransmissionDatabase(QObject *parent)
         dir.mkpath(dataPath);
     m_cfgFile = QString("%1/data.json").arg(dataPath);
     loadFromLocalStorage();
+    emit listChanged();
 }
 
 DLTransmissionDatabase::~DLTransmissionDatabase()
@@ -36,11 +37,13 @@ void DLTransmissionDatabase::removeTaskInfo(const DLTaskInfo &info)
     if (ret < 1) {
         qWarning()<<Q_FUNC_INFO<<"Remove info ["<<info<<"] error!!";
     }
+    emit listChanged();
 }
 
 void DLTransmissionDatabase::appendTaskInfo(const DLTaskInfo &info)
 {
     m_infoHash.insert(info.requestUrl()+info.filePath(), info);
+    emit listChanged();
 }
 
 DLTaskInfoList DLTransmissionDatabase::list() const

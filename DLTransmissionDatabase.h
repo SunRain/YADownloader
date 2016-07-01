@@ -28,6 +28,10 @@ public:
     DLTaskInfoList list() const;
 
     void flush();
+
+signals:
+    void listChanged();
+
 private:
     void loadFromLocalStorage();
     void saveToLocalStorage();
