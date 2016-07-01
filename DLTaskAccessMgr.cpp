@@ -1,4 +1,4 @@
-#include "DownloadMgr.h"
+#include "DLTaskAccessMgr.h"
 
 #include <QDebug>
 
@@ -7,14 +7,14 @@
 
 namespace YADownloader {
 
-DownloadMgr::DownloadMgr(QObject *parent)
+DLTaskAccessMgr::DLTaskAccessMgr(QObject *parent)
     : QObject(parent)
     , m_transDB(new DLTransmissionDatabase(this))
 {
 
 }
 
-DownloadMgr::~DownloadMgr()
+DLTaskAccessMgr::~DLTaskAccessMgr()
 {
     qDebug()<<Q_FUNC_INFO<<"=========";
     if (m_transDB)
@@ -22,7 +22,7 @@ DownloadMgr::~DownloadMgr()
     m_transDB = nullptr;
 }
 
-DLTask *DownloadMgr::get(const DLRequest &request)
+DLTask *DLTaskAccessMgr::get(const DLRequest &request)
 {
     DLTaskImpl *task = new DLTaskImpl(request, m_transDB);
     return task;

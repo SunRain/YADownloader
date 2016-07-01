@@ -1,5 +1,5 @@
-#ifndef DOWNLOADMGR_H
-#define DOWNLOADMGR_H
+#ifndef DLTASKACCESSMGR_H
+#define DLTASKACCESSMGR_H
 
 #include <QObject>
 #include "yadownloader_global.h"
@@ -10,13 +10,13 @@ namespace YADownloader {
 
 class DLTask;
 class DLTransmissionDatabase;
-class YADOWNLOADERSHARED_EXPORT DownloadMgr : public QObject
+class YADOWNLOADERSHARED_EXPORT DLTaskAccessMgr : public QObject
 {
     Q_OBJECT
 //    DECLARE_SINGLETON_POINTER(DownloadMgr)
 public:
-    explicit DownloadMgr(QObject *parent = 0);
-    virtual ~DownloadMgr();
+    explicit DLTaskAccessMgr(QObject *parent = 0);
+    virtual ~DLTaskAccessMgr();
 
     DLTask *get(const DLRequest &request);
 
@@ -26,4 +26,4 @@ private:
 };
 
 } //YADownloader
-#endif // DOWNLOADMGR_H
+#endif // DLTASKACCESSMGR_H

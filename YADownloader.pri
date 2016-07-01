@@ -6,7 +6,6 @@ SOURCES += \
     $$PWD/YADownloader.cpp \
     $$PWD/DownloadTask.cpp \
     $$PWD/Configuration.cpp \
-    $$PWD/DownloadMgr.cpp \
     $$PWD/TaskObject.cpp \
     $$PWD/SignalCenter.cpp \
     $$PWD/DLRequest.cpp \
@@ -16,7 +15,8 @@ SOURCES += \
     $$PWD/DLTaskHeaderReader.cpp \
     $$PWD/DLTaskStateDispatch.cpp \
     $$PWD/DLTransmissionDatabase.cpp \
-    $$PWD/DLTaskInfo.cpp
+    $$PWD/DLTaskInfo.cpp \
+    $$PWD/DLTaskAccessMgr.cpp
 
 HEADERS += \
     $$PWD/YADownloader.h \
@@ -25,7 +25,6 @@ HEADERS += \
     $$PWD/Configuration.h \
     $$PWD/SingletonPointer.h \
     $$PWD/SingletonPointer_p.h \
-    $$PWD/DownloadMgr.h \
     $$PWD/TaskObject.h \
     $$PWD/SignalCenter.h \
     $$PWD/DLRequest.h \
@@ -36,6 +35,7 @@ HEADERS += \
     $$PWD/DLTaskStateDispatch.h \
     $$PWD/DLTransmissionDatabase.h \
     $$PWD/DLTaskInfo.h \
-    $$PWD/DLTransmissionDatabaseKeys.h
+    $$PWD/DLTransmissionDatabaseKeys.h \
+    $$PWD/DLTaskAccessMgr.h
 
 
