@@ -178,6 +178,7 @@ bool DLTask::event(QEvent *event)
             if (status == DLStatusEvent::DLStatus::DL_FINISH) {
                 if (allPeerCompleted()) {
                     managerFinish();
+                    emitStatus();
                 }
             }
         }
@@ -452,8 +453,10 @@ bool DLTask::allPeerCompleted()
 void DLTask::managerFinish()
 {
     qDebug()<<Q_FUNC_INFO<<">>>>>>>>>>>>>>>>>>>>>>>>> dl finish";
-    m_DLStatus = DL_STOP;
-    saveInfo();
+    m_DLStatus = DL_FINISH;
+//    saveInfo();
+    m_transDB->removeTaskInfo(m_dlTaskInfo);
+    m_transDB->flush();
 
     QString fname = m_dlRequest.filePath();
     if (!QFile::exists(fname + PEER_TAG) && !QFile::exists(fname)) {

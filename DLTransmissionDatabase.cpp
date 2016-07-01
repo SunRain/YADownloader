@@ -30,6 +30,14 @@ DLTransmissionDatabase::~DLTransmissionDatabase()
     saveToLocalStorage();
 }
 
+void DLTransmissionDatabase::removeTaskInfo(const DLTaskInfo &info)
+{
+    int ret = m_infoHash.remove(info.requestUrl()+info.filePath());
+    if (ret < 1) {
+        qWarning()<<Q_FUNC_INFO<<"Remove info ["<<info<<"] error!!";
+    }
+}
+
 void DLTransmissionDatabase::appendTaskInfo(const DLTaskInfo &info)
 {
     m_infoHash.insert(info.requestUrl()+info.filePath(), info);

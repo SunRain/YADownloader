@@ -18,6 +18,7 @@ public:
     explicit DLTransmissionDatabase(QObject *parent = 0);
     virtual ~DLTransmissionDatabase();
 
+    void removeTaskInfo(const DLTaskInfo &info);
     void appendTaskInfo(const DLTaskInfo &info);
 
     DLTaskInfoList list() const;
