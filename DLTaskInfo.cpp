@@ -126,6 +126,27 @@ DLTaskInfo::TaskStatus DLTaskInfo::status() const
     return d.data()->status;
 }
 
+QVariantMap DLTaskInfo::toMap() const
+{
+    QVariantMap map;
+    map.insert(TASK_INFO_FILE_PATH, d.data()->filePath);
+    map.insert(TASK_INFO_DL_URL, d.data()->downloadUrl);
+    map.insert(TASK_INFO_REQ_URL, d.data()->requestUrl);
+    map.insert(TASK_INFO_READY_SIZE, d.data()->readySize);
+    map.insert(TASK_INFO_TOTAL_SIZE, d.data()->totalSize);
+    map.insert(TASK_INFO_STATUS, QString::number(d.data()->status));
+    QVariantList list;
+    foreach (DLTaskPeerInfo p, d.data()->peerList) {
+        QVariantMap map;
+        map.insert(TASK_PEER_START_IDX, p.startIndex());
+        map.insert(TASK_PEER_END_IDX, p.endIndex());
+        map.insert(TASK_PEER_COMPLETED_CNT, p.dlCompleted());
+        map.insert(TASK_INFO_FILE_PATH, p.filePath());
+        list.append(map);
+    }
+    return map;
+}
+
 //void DLTaskInfo::setHash(const QString &hash)
 //{
 //    d.data()->uid = hash;

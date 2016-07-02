@@ -67,6 +67,8 @@ public:
 
     TaskStatus status() const;
 
+    QVariantMap toMap() const;
+
 //    void setHash(const QString &hash);
 
     void setDownloadUrl(const QString &downloadUrl);
