@@ -503,6 +503,8 @@ void DLTask::managerFinish()
     m_dlCompletedCountHash.clear();
 
     m_DLStatus = DL_FINISH;
+    m_dlTaskInfo.setStatus(DLTaskInfo::STATUS_STOP);
+    m_dispatch->dispatchDLTaskInfo(m_uuid, m_dlTaskInfo);
     m_transDB->removeTaskInfo(m_dlTaskInfo);
     m_transDB->flush();
 
