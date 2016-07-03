@@ -61,7 +61,7 @@ public:
     };
     explicit DLStatusEvent(const QString &hash, DLStatus status, bool isTaskPeerEvent);
     virtual ~DLStatusEvent() {}
-    bool isTaskPeeEvent() const;
+    bool isTaskPeerEvent() const;
     QString hash() const;
     DLStatus status() const;
 private:

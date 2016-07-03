@@ -173,19 +173,20 @@ bool DLTask::event(QEvent *event)
                <<" totalSize "<<m_bytesFileSize
                <<" percent "<<(float)m_bytesDownloaded/(float)m_bytesFileSize;
         m_dispatch->dispatchDLTaskInfo(m_uuid, m_dlTaskInfo);
-        emit downloadProgress(m_bytesReceived, m_bytesDownloaded, m_bytesFileSize);
+        emit downloadProgress(m_uuid, m_bytesReceived, m_bytesDownloaded, m_bytesFileSize);
         return true;
     }
     if (event->type() == DLTASK_EVENT_DL_STATUS) {
         DLStatusEvent *e = (DLStatusEvent*)event;
         QString hash = e->hash();
         DLStatusEvent::DLStatus status = e->status();
-        qDebug()<<Q_FUNC_INFO<<">>>>>>>>>>>>> DLTASK_EVENT_DL_STATUS for hash "<<hash;
-        if (e->isTaskPeeEvent()) {
+        qDebug()<<Q_FUNC_INFO<<">>>>>>>>>>>>> DLTASK_EVENT_DL_STATUS for hash "<<hash
+               <<"  is peere vent "<<e->isTaskPeerEvent();
+        if (e->isTaskPeerEvent()) {
             if (status == DLStatusEvent::DLStatus::DL_FINISH) {
                 if (allPeerCompleted()) {
                     managerFinish();
-                    m_dispatch->dispatchDownloadStatus(hash, DLStatusEvent::DLStatus::DL_FINISH, false);
+                    m_dispatch->dispatchDownloadStatus(m_uuid, DLStatusEvent::DLStatus::DL_FINISH, false);
                 }
             }
         } else {
@@ -200,7 +201,7 @@ bool DLTask::event(QEvent *event)
             } else if (status == DLStatusEvent::DLStatus::DL_STOP) {
                 m_DLStatus = DL_STOP;
             }
-            emit statusChanged(m_DLStatus);
+            emit statusChanged(m_uuid, m_DLStatus);
         }
 
         return true;
@@ -210,7 +211,7 @@ bool DLTask::event(QEvent *event)
         QString hash = e->hash();
         DLTaskInfo m_dlTaskInfo = e->taskInfo();
         if (hash == m_uuid) {
-            emit taskInfoChanged(m_dlTaskInfo);
+            emit taskInfoChanged(hash, m_dlTaskInfo);
         }
         return true;
     }
@@ -244,7 +245,7 @@ void DLTask::abort()
         qDeleteAll(m_peerList);
         m_peerList.clear();
     }
-    emit statusChanged(m_DLStatus);
+    emit statusChanged(m_uuid, m_DLStatus);
 }
 
 void DLTask::suspend()
@@ -264,7 +265,7 @@ void DLTask::resume()
     } else {
         initTaskInfo();
         download();
-        emit statusChanged(m_DLStatus);
+        emit statusChanged(m_uuid, m_DLStatus);
     }
 }
 
@@ -495,11 +496,10 @@ void DLTask::managerFinish()
     qDeleteAll(m_peerList);
     m_peerList.clear();
 
-    if (m_workerThread->isRunning()) {
-        m_workerThread->quit();
-    }
-    m_workerThread->wait();
-
+//    if (m_workerThread->isRunning()) {
+//        m_workerThread->quit();
+////        m_workerThread->wait();
+//    }
     m_dlCompletedCountHash.clear();
 
     m_DLStatus = DL_FINISH;

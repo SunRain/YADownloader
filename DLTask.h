@@ -100,9 +100,9 @@ protected:
 
 signals:
     void initFileSize(qint64 fileSize);
-    void downloadProgress(qint64 bytesReceived, qint64 bytesDownloaded, qint64 bytesFileSize);
-    void statusChanged(TaskStatus status);
-    void taskInfoChanged(const DLTaskInfo &info);
+    void downloadProgress(const QString &uuid, qint64 bytesReceived, qint64 bytesDownloaded, qint64 bytesFileSize);
+    void statusChanged(const QString &uuid, TaskStatus status);
+    void taskInfoChanged(const QString &uuid, const DLTaskInfo &info);
 
 public slots:
     void start();
