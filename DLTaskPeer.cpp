@@ -62,7 +62,7 @@ DLTaskPeerInfo &DLTaskPeerInfo::operator =(const DLTaskPeerInfo &other)
     return *this;
 }
 
-bool DLTaskPeerInfo::hasSameIdentifier(const DLTaskPeerInfo &other)
+bool DLTaskPeerInfo::hasSameIdentifier(const DLTaskPeerInfo &other) const
 {
     return d.data()->endIndex == other.d.data()->endIndex
             && d.data()->filePath == other.d.data()->filePath

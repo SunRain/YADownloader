@@ -38,7 +38,7 @@ public:
     /// \param other
     /// \return if has same identifier.The identifier tuple is composed of the startIndex endIndex filePath
     ///
-    bool hasSameIdentifier(const DLTaskPeerInfo &other);
+    bool hasSameIdentifier(const DLTaskPeerInfo &other) const;
 
     quint64 startIndex() const;
     void setStartIndex(const quint64 &value);
