@@ -47,9 +47,10 @@ public:
     /// \brief hasSameIdentifier
     /// \param other
     /// \return if has same identifier.
-    /// The identifier tuple is composed of the
+    /// The identifier tuple is composed of the downloadUrl requestUrl filePath totalSize
+    /// and SameIdentifier of peerList
     ///
-    bool hasSameIdentifier(const DLTaskPeerInfo &other);
+    bool hasSameIdentifier(const DLTaskInfo &other);
 
 //    QString hash() const;
 
@@ -68,6 +69,8 @@ public:
     TaskStatus status() const;
 
     QVariantMap toMap() const;
+
+    static DLTaskInfo fromMap(const QVariantMap &map);
 
 //    void setHash(const QString &hash);
 
@@ -110,6 +113,7 @@ private:
         DLTaskPeerInfoList peerList;
         DLTaskInfo::TaskStatus status;
     };
+    bool comparePeer(const DLTaskPeerInfo &p, const DLTaskPeerInfoList &list) const;
     QSharedDataPointer<DLTaskInfoPriv> d;
 };
 

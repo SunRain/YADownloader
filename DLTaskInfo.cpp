@@ -80,10 +80,20 @@ void DLTaskInfo::clear()
     d.data()->totalSize = 0;
 }
 
-bool DLTaskInfo::hasSameIdentifier(const DLTaskPeerInfo &other)
+bool DLTaskInfo::hasSameIdentifier(const DLTaskInfo &other)
 {
-    //TODO
-    return false;
+    bool flag = true;
+    foreach (DLTaskPeerInfo info, d.data()->peerList) {
+        DLTaskPeerInfoList list = other.peerList();
+        flag = comparePeer(info, list);
+        if (!flag)
+            break;
+    }
+    return d.data()->downloadUrl == other.d.data()->downloadUrl
+            && d.data()->filePath == other.d.data()->filePath
+            && d.data()->requestUrl == other.d.data()->requestUrl
+            && d.data()->totalSize == other.d.data()->totalSize
+            && flag;
 }
 
 //QString DLTaskInfo::hash() const
@@ -147,6 +157,30 @@ QVariantMap DLTaskInfo::toMap() const
     return map;
 }
 
+DLTaskInfo DLTaskInfo::fromMap(const QVariantMap &map)
+{
+    DLTaskInfo info;
+    info.setDownloadUrl(map.value(TASK_INFO_DL_URL).toString());
+    info.setFilePath(map.value(TASK_INFO_FILE_PATH).toString());
+    info.setRequestUrl(map.value(TASK_INFO_REQ_URL).toString());
+    info.setReadySize(map.value(TASK_INFO_READY_SIZE).toULongLong());
+    info.setTotalSize(map.value(TASK_INFO_TOTAL_SIZE).toULongLong());
+    info.setStatus((DLTaskInfo::TaskStatus)map.value(TASK_INFO_STATUS).toString().toInt());
+    QVariantList vaList = map.value(TASK_INFO_PEER_LIST).toList();
+    DLTaskPeerInfoList plist;
+    foreach (QVariant hh, vaList) {
+        QVariantMap h = hh.toMap();
+        DLTaskPeerInfo p;
+        p.setStartIndex(h.value(TASK_PEER_START_IDX).toString().toULongLong());
+        p.setEndIndex(h.value(TASK_PEER_END_IDX).toString().toULongLong());
+        p.setCompletedCount(h.value(TASK_PEER_COMPLETED_CNT).toString().toULongLong());
+        p.setFilePath(h.value(TASK_INFO_FILE_PATH).toString());
+        plist.append(p);
+    }
+    info.setPeerList(plist);
+    return info;
+}
+
 //void DLTaskInfo::setHash(const QString &hash)
 //{
 //    d.data()->uid = hash;
@@ -187,6 +221,15 @@ void DLTaskInfo::setPeerList(const DLTaskPeerInfoList &peerList)
 void DLTaskInfo::setStatus(DLTaskInfo::TaskStatus status)
 {
     d.data()->status = status;
+}
+
+bool DLTaskInfo::comparePeer(const DLTaskPeerInfo &p, const DLTaskPeerInfoList &list) const
+{
+    foreach (DLTaskPeerInfo info, list) {
+        if (p.hasSameIdentifier(info))
+            return true;
+    }
+    return false;
 }
 
 QDebug operator <<(QDebug dbg, const YADownloader::DLTaskInfo &info)
