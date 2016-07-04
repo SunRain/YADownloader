@@ -48,7 +48,6 @@ void DLTransmissionDatabase::appendTaskInfo(const DLTaskInfo &info)
 
 DLTaskInfoList DLTransmissionDatabase::list() const
 {
-//    qDebug()<<Q_FUNC_INFO<<">>>>>>>>> "<<m_infoHash.values();
     return m_infoHash.values();
 }
 

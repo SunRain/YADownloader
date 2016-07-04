@@ -14,7 +14,6 @@ class DLTransmissionDatabase;
 class YADOWNLOADERSHARED_EXPORT DLTaskAccessMgr : public QObject
 {
     Q_OBJECT
-//    DECLARE_SINGLETON_POINTER(DownloadMgr)
 public:
     explicit DLTaskAccessMgr(QObject *parent = 0);
     virtual ~DLTaskAccessMgr();
@@ -24,6 +23,8 @@ public:
     ///
     /// \brief resumables
     /// \return list of all resumable DLTaskInfo
+    /// DLTaskAccessMgr will save all of current running DLTask uuids in DLTaskAccessMgr life-cycle
+    /// If uuid of resumable DLTaskInfo not included in current running DLTask, if would be empty string
     ///
     DLTaskInfoList resumables() const;
 
@@ -32,6 +33,10 @@ protected:
 
 signals:
     void resumablesChanged(const DLTaskInfoList &list);
+
+private:
+    DLTaskInfoList m_list;
+    QStringList m_runningUUID;
 
 };
 
