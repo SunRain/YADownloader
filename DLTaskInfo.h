@@ -48,6 +48,7 @@ public:
     /// \param other
     /// \return if has same identifier.
     /// The identifier tuple is composed of the downloadUrl requestUrl filePath totalSize
+    /// NOTE: hasSameIdentifier not identifier the identifier() string
     /// and SameIdentifier of peerList
     ///
     bool hasSameIdentifier(const DLTaskInfo &other);
