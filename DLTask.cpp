@@ -427,6 +427,7 @@ void DLTask::initTaskInfo()
     }
     if (!m_dlTaskInfo.isEmpty()) {
         m_dlTaskInfo.setStatus(DLTaskInfo::STATUS_STOP);
+        m_dlTaskInfo.setIdentifier(m_uuid);
         m_transDB->appendTaskInfo(m_dlTaskInfo);
         m_transDB->flush();
     }

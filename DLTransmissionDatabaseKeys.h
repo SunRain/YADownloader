@@ -19,6 +19,7 @@ const static QString TASK_INFO_STATUS("taskStatus");
 const static QString TASK_PEER_START_IDX("startIndex");
 const static QString TASK_PEER_END_IDX("endIndex");
 const static QString TASK_PEER_COMPLETED_CNT("completedCount");
+const static QString TASK_INFO_IDENTIFIER("identifier");
 
 class DLTransmissionDatabaseKeysName : public QObject
 {
@@ -34,6 +35,7 @@ class DLTransmissionDatabaseKeysName : public QObject
     Q_PROPERTY(QString keyEndIndex READ keyEndIndex CONSTANT)
     Q_PROPERTY(QString keyCompletedCount READ keyCompletedCount CONSTANT)
     Q_PROPERTY(QString KeyTaskStatus READ taskStatus CONSTANT)
+    Q_PROPERTY(QString KeyIdentifier READ identifier CONSTANT)
 public:
     DLTransmissionDatabaseKeysName(QObject *parent = 0)
         : QObject(parent)
@@ -59,7 +61,8 @@ public:
              << TASK_PEER_COMPLETED_CNT
              << TASK_PEER_END_IDX
              << TASK_PEER_START_IDX
-             << TASK_INFO_STATUS;
+             << TASK_INFO_STATUS
+             << TASK_INFO_IDENTIFIER;
         return list;
     }
 
@@ -115,6 +118,10 @@ public:
     QString taskStatus() const
     {
         return TASK_INFO_STATUS;
+    }
+    QString identifier() const
+    {
+        return TASK_INFO_IDENTIFIER;
     }
 };
 

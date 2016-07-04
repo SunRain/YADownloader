@@ -38,7 +38,7 @@ public:
 
     ///
     /// \brief clear
-    /// This will clear DLTaskInfo except requestUrl value;
+    /// This will clear all infomation in DLTaskInfo except requestUrl value;
     ///
     void clear();
 
@@ -52,7 +52,14 @@ public:
     ///
     bool hasSameIdentifier(const DLTaskInfo &other);
 
-//    QString hash() const;
+    ///
+    /// \brief identifier
+    /// A flag modified by DLTask for identifing each of running DLTask
+    /// Usually should be uuid of DLTask
+    /// DLTask taskInfo() will return DLTaskInfo with identifier of its uuid
+    /// \return
+    ///
+    QString identifier() const;
 
     QString downloadUrl() const;
 
@@ -72,7 +79,12 @@ public:
 
     static DLTaskInfo fromMap(const QVariantMap &map);
 
-//    void setHash(const QString &hash);
+    ///
+    /// \brief setIdentifier
+    /// Usually should set uuid of DLTask
+    /// \param identifier
+    ///
+    void setIdentifier(const QString &identifier);
 
     void setDownloadUrl(const QString &downloadUrl);
 
@@ -93,10 +105,10 @@ private:
     {
     public:
         DLTaskInfoPriv()
-    //        : uid(QString())
             : downloadUrl(QString())
             , requestUrl(QString())
             , filePath(QString())
+            , identifier(QString())
             , totalSize(0)
             , readySize(0)
             , status(DLTaskInfo::STATUS_STOP)
@@ -104,10 +116,10 @@ private:
         }
         virtual ~DLTaskInfoPriv() {}
 
-    //    QString uid;
         QString downloadUrl;
         QString requestUrl;
         QString filePath;
+        QString identifier;
         qint64 totalSize;
         qint64 readySize;
         DLTaskPeerInfoList peerList;
