@@ -169,9 +169,9 @@ bool DLTask::event(QEvent *event)
 //        qDebug()<<Q_FUNC_INFO<<">>> "<<m_dlCompletedHash;
 
         m_dlTaskInfo.setReadySize(m_bytesDownloaded);
-        qDebug()<<Q_FUNC_INFO<<"downloadProgress downloadedSize "<<m_bytesDownloaded
-               <<" totalSize "<<m_bytesFileSize
-               <<" percent "<<(float)m_bytesDownloaded/(float)m_bytesFileSize;
+//        qDebug()<<Q_FUNC_INFO<<"downloadProgress downloadedSize "<<m_bytesDownloaded
+//               <<" totalSize "<<m_bytesFileSize
+//               <<" percent "<<(float)m_bytesDownloaded/(float)m_bytesFileSize;
         m_dispatch->dispatchDLTaskInfo(m_uuid, m_dlTaskInfo);
         emit downloadProgress(m_uuid, m_bytesReceived, m_bytesDownloaded, m_bytesFileSize);
         return true;
