@@ -181,7 +181,7 @@ bool DLTask::event(QEvent *event)
         QString hash = e->hash();
         DLStatusEvent::DLStatus status = e->status();
         qDebug()<<Q_FUNC_INFO<<">>>>>>>>>>>>> DLTASK_EVENT_DL_STATUS for hash "<<hash
-               <<"  is peere vent "<<e->isTaskPeerEvent();
+               <<"  is peere event "<<e->isTaskPeerEvent();
         if (e->isTaskPeerEvent()) {
             if (status == DLStatusEvent::DLStatus::DL_FINISH) {
                 if (allPeerCompleted()) {
@@ -194,12 +194,16 @@ bool DLTask::event(QEvent *event)
                 m_DLStatus = DL_FAILURE;
             } else if (status == DLStatusEvent::DLStatus::DL_FINISH) {
                 m_DLStatus = DL_FINISH;
+                qDeleteAll(m_peerList);
+                m_peerList.clear();
             } else if (status == DLStatusEvent::DLStatus::DL_PROGRESSING) {
                 //TODO dummy
             } else if (status == DLStatusEvent::DLStatus::DL_START) {
                 m_DLStatus = DL_START;
             } else if (status == DLStatusEvent::DLStatus::DL_STOP) {
                 m_DLStatus = DL_STOP;
+                qDeleteAll(m_peerList);
+                m_peerList.clear();
             }
             emit statusChanged(m_uuid, m_DLStatus);
         }
@@ -242,10 +246,11 @@ void DLTask::abort()
             p->abort();
         }
         saveInfo();
-        qDeleteAll(m_peerList);
-        m_peerList.clear();
+//        qDeleteAll(m_peerList);
+//        m_peerList.clear();
     }
-    emit statusChanged(m_uuid, m_DLStatus);
+//    emit statusChanged(m_uuid, m_DLStatus);
+    m_dispatch->dispatchDownloadStatus(m_uuid, DLStatusEvent::DLStatus::DL_STOP, false);
 }
 
 void DLTask::suspend()
@@ -265,7 +270,8 @@ void DLTask::resume()
     } else {
         initTaskInfo();
         download();
-        emit statusChanged(m_uuid, m_DLStatus);
+//        emit statusChanged(m_uuid, m_DLStatus);
+        m_dispatch->dispatchDownloadStatus(m_uuid, DLStatusEvent::DLStatus::DL_START, false);
     }
 }
 
@@ -466,12 +472,22 @@ bool DLTask::peerCompleted(const DLTaskPeerInfo &info)
 
 bool DLTask::allPeerCompleted()
 {
+    if (m_bytesFileSize > 0) {
+        quint64 total = 0;
+        foreach (quint64 i, m_dlCompletedCountHash.values()) {
+            total += i;
+        }
+        if (total == m_bytesFileSize)
+            return true;
+        else
+            return false;
+    }
     bool ret = true;
     foreach (DLTaskPeer *p, m_peerList) {
         DLTaskPeerInfo info = p->info();
         qint64 completed = m_dlCompletedCountHash.value(p->hash());
         qint64 total = info.endIndex() - info.startIndex() +1;
-        if (completed != total) {
+        if (completed != total && total > 0) {
             ret = false;
             break;
         }
@@ -519,9 +535,11 @@ void DLTask::managerFinish()
         return;
 
     QFile f(fname + PEER_TAG);
-    if (f.size() != m_bytesFileSize && m_bytesFileSize > 0)
+    if (f.size() != m_bytesFileSize && m_bytesFileSize > 0) {
         qWarning()<<Q_FUNC_INFO<<QString("Download finished, but downloaded file size [%1], not equal as prefer size [%2]")
                     .arg(f.size()).arg(m_bytesDownloaded);
+        return;
+    }
 
     if (!f.rename(fname))
         qWarning()<<Q_FUNC_INFO<<"Rename download file error "<<f.errorString();
