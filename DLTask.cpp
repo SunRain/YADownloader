@@ -9,6 +9,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QUuid>
+#include <QCoreApplication>
 
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -194,6 +195,13 @@ bool DLTask::event(QEvent *event)
                 m_DLStatus = DL_FAILURE;
             } else if (status == DLStatusEvent::DLStatus::DL_FINISH) {
                 m_DLStatus = DL_FINISH;
+                if (!m_peerList.isEmpty()) {
+                    foreach (DLTaskPeer *p, m_peerList) {
+                        while (!p->isFinished()) {
+                            qApp->processEvents();
+                        }
+                    }
+                }
                 qDeleteAll(m_peerList);
                 m_peerList.clear();
             } else if (status == DLStatusEvent::DLStatus::DL_PROGRESSING) {
@@ -202,6 +210,13 @@ bool DLTask::event(QEvent *event)
                 m_DLStatus = DL_START;
             } else if (status == DLStatusEvent::DLStatus::DL_STOP) {
                 m_DLStatus = DL_STOP;
+                if (!m_peerList.isEmpty()) {
+                    foreach (DLTaskPeer *p, m_peerList) {
+                        while (!p->isFinished()) {
+                            qApp->processEvents();
+                        }
+                    }
+                }
                 qDeleteAll(m_peerList);
                 m_peerList.clear();
             }
