@@ -260,6 +260,7 @@ void DLTask::abort()
         foreach (DLTaskPeer *p, m_peerList) {
             p->abort();
         }
+        m_dlTaskInfo.setStatus(DLTaskInfo::TaskStatus::STATUS_STOP);
         saveInfo();
 //        qDeleteAll(m_peerList);
 //        m_peerList.clear();
@@ -332,6 +333,8 @@ void DLTask::download()
     if (!m_workerThread->isRunning())
         m_workerThread->start();
     m_dlTaskInfo.setStatus(DLTaskInfo::STATUS_RUNNING);
+    m_transDB->appendTaskInfo(m_dlTaskInfo);
+    m_transDB->flush();
     m_dispatch->dispatchDLTaskInfo(m_uuid, m_dlTaskInfo);
 }
 
