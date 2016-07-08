@@ -15,17 +15,17 @@ DLTaskAccessMgr::DLTaskAccessMgr(QObject *parent)
     connect(getTransDB(), &DLTransmissionDatabase::listChanged, [&]() {
         m_list.clear();
         foreach (DLTaskInfo info, getTransDB()->list()) {
-            if (!m_runningUUID.contains(info.identifier())) {
-                info.setIdentifier(QString());
-            }
+//            if (!m_runningUUID.contains(info.identifier())) {
+//                info.setIdentifier(QString());
+//            }
             m_list.append(info);
         }
         emit resumablesChanged(m_list);
     });
     foreach (DLTaskInfo info, getTransDB()->list()) {
-        if (!m_runningUUID.contains(info.identifier())) {
-            info.setIdentifier(QString());
-        }
+//        if (!m_runningUUID.contains(info.identifier())) {
+//            info.setIdentifier(QString());
+//        }
         m_list.append(info);
     }
     emit resumablesChanged(m_list);
