@@ -35,7 +35,7 @@ DLTask::DLTask(DLTransmissionDatabase *db, const DLRequest &request, QObject *pa
     : QObject(parent)
     , m_networkMgr(new QNetworkAccessManager(this))
     , m_reply(nullptr)
-    , m_workerThread(new QThread(this))
+//    , m_workerThread(new QThread(this))
     , m_headerReader(nullptr)
     , m_dispatch(new DLTaskStateDispatch(this))
     , m_transDB(db)
@@ -51,12 +51,12 @@ DLTask::DLTask(DLTransmissionDatabase *db, const DLRequest &request, QObject *pa
     QString value = QUuid::createUuid().toString() + m_dlRequest.requestUrl().toString();
     m_uuid = QString(QCryptographicHash::hash(value.toUtf8(), QCryptographicHash::Md5).toHex());
 
-    connect (m_workerThread, &QThread::finished, [&]() {
-        qDebug()<<Q_FUNC_INFO<<"<<<<<<<<<<<<<<<<<  m_workerThread finished";
-        if(m_DLStatus != DL_STOP || m_DLStatus != DL_FINISH) {
-            abort();
-        }
-    });
+//    connect (m_workerThread, &QThread::finished, [&]() {
+//        qDebug()<<Q_FUNC_INFO<<"<<<<<<<<<<<<<<<<<  m_workerThread finished";
+//        if(m_DLStatus != DL_STOP || m_DLStatus != DL_FINISH) {
+//            abort();
+//        }
+//    });
 }
 
 DLTask::~DLTask()
@@ -66,17 +66,19 @@ DLTask::~DLTask()
     if(m_DLStatus != DL_STOP || m_DLStatus != DL_FINISH) {
         abort();
     }
-    if (m_workerThread->isRunning ()) {
-        m_workerThread->quit ();
-    }
+//    if (m_workerThread->isRunning ()) {
+//        m_workerThread->quit ();
+//    }
 
-    while (!m_workerThread->isFinished()) {
-        /// do nothing
-//        qApp->processEvents();
-    }
+//    while (!m_workerThread->isFinished()) {
+//        /// do nothing
+////        qApp->processEvents();
+//        m_workerThread->yieldCurrentThread();
+//        QThread::yieldCurrentThread();
+//    }
 
-    m_workerThread->deleteLater ();
-    m_workerThread = nullptr;
+//    m_workerThread->deleteLater ();
+//    m_workerThread = nullptr;
 
     if (m_networkMgr) {
         m_networkMgr->deleteLater ();
@@ -150,8 +152,8 @@ bool DLTask::event(QEvent *event)
         qDebug()<<Q_FUNC_INFO<<" file size "<<m_bytesFileSize;
         emit initFileSize(m_bytesFileSize);
         if (m_DLStatus == DL_START) {
-            if (!m_workerThread->isRunning ())
-                m_workerThread->start ();
+//            if (!m_workerThread->isRunning ())
+//                m_workerThread->start ();
             m_peerLocker.lock();
             if (m_peerList.isEmpty ()) {
                 initTaskInfo();
@@ -327,6 +329,10 @@ void DLTask::resume()
 
 void DLTask::download()
 {
+//    if (m_workerThread->isRunning())
+//        m_workerThread->quit();
+//    m_workerThread->wait();
+
     DLTaskPeerInfoList peerInfoList = m_dlTaskInfo.peerList();
     foreach (DLTaskPeerInfo info, peerInfoList) {
 //        m_downloadedSize += info.dlCompleted();
@@ -360,12 +366,12 @@ void DLTask::download()
             return;
         }
         DLTaskPeer *peer = new DLTaskPeer(m_dispatch, info, reply, 0);
-        peer->moveToThread (m_workerThread);
+//        peer->moveToThread (m_workerThread);
         m_dlCompletedCountHash.insert(peer->hash(), info.dlCompleted());
         m_peerList.append(peer);
     }
-    if (!m_workerThread->isRunning())
-        m_workerThread->start();
+//    if (!m_workerThread->isRunning())
+//        m_workerThread->start();
     m_dlTaskInfo.setStatus(DLTaskInfo::STATUS_RUNNING);
     m_transDB->appendTaskInfo(m_dlTaskInfo);
     m_transDB->flush();

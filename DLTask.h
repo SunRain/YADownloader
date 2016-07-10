@@ -127,7 +127,7 @@ private:
     QNetworkAccessManager *m_networkMgr;
     QNetworkReply *m_reply;
     QNetworkReply *m_headReply;
-    QThread *m_workerThread;
+//    QThread *m_workerThread;
     DLTaskHeaderReader *m_headerReader;
     DLTaskStateDispatch *m_dispatch;
     DLTransmissionDatabase *m_transDB;
