@@ -112,12 +112,14 @@ DLTaskStateDispatch::DLTaskStateDispatch(QObject *parent)
 
 DLTaskStateDispatch::~DLTaskStateDispatch()
 {
-
+    qDebug()<<Q_FUNC_INFO<<".................";
 }
 
 void DLTaskStateDispatch::dispatchFileSize(qint64 fileSize)
 {
+    m_locker.lock();
     qApp->postEvent(parent(), new FileSizeEvent(fileSize));
+    m_locker.unlock();
 }
 
 void DLTaskStateDispatch::dispatchDownloadProgress(const QString &hash, qint64 bytesReceived,

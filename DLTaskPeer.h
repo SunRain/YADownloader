@@ -124,6 +124,7 @@ private:
     QString m_hash;
     qint64 m_doneCount;
     qint64 m_peerSize;
+    bool m_replyFinish;
 };
 
 typedef QList<DLTaskPeer*> DLTaskPeerList;

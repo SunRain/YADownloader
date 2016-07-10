@@ -120,7 +120,7 @@ private:
 //    }
     bool peerCompleted(const DLTaskPeerInfo &info);
     bool allPeerCompleted();
-    void managerFinish();
+    void managerFinishedFile();
     QString adjustSaveName(const DLRequest &req);
 
 private:
@@ -140,6 +140,7 @@ private:
 
     QHash<QString, quint64> m_dlCompletedCountHash;//completedCount
     QString m_uuid;
+    QMutex m_peerLocker;
 
     bool m_overwriteExistFile;
     int m_initHeaderCounts;

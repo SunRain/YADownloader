@@ -53,7 +53,9 @@ DLTask::DLTask(DLTransmissionDatabase *db, const DLRequest &request, QObject *pa
 
     connect (m_workerThread, &QThread::finished, [&]() {
         qDebug()<<Q_FUNC_INFO<<"<<<<<<<<<<<<<<<<<  m_workerThread finished";
-        abort();
+        if(m_DLStatus != DL_STOP || m_DLStatus != DL_FINISH) {
+            abort();
+        }
     });
 }
 
@@ -64,11 +66,15 @@ DLTask::~DLTask()
     if(m_DLStatus != DL_STOP || m_DLStatus != DL_FINISH) {
         abort();
     }
-
     if (m_workerThread->isRunning ()) {
         m_workerThread->quit ();
     }
-    m_workerThread->wait ();
+
+    while (!m_workerThread->isFinished()) {
+        /// do nothing
+//        qApp->processEvents();
+    }
+
     m_workerThread->deleteLater ();
     m_workerThread = nullptr;
 
@@ -82,7 +88,9 @@ DLTask::~DLTask()
         m_headerReader->deleteLater();
         m_headerReader = nullptr;
     }
-
+//    if (m_dispatch)
+//        m_dispatch->deleteLater();
+//    m_dispatch = nullptr;
 }
 
 void DLTask::setRequest(const DLRequest &request) {
@@ -144,12 +152,14 @@ bool DLTask::event(QEvent *event)
         if (m_DLStatus == DL_START) {
             if (!m_workerThread->isRunning ())
                 m_workerThread->start ();
+            m_peerLocker.lock();
             if (m_peerList.isEmpty ()) {
                 initTaskInfo();
                 download();
 //                emitStatus();
-                m_dispatch->dispatchDownloadStatus(m_uuid, DLStatusEvent::DLStatus::DL_START, false);
+//                m_dispatch->dispatchDownloadStatus(m_uuid, DLStatusEvent::DLStatus::DL_START, false);
             }
+            m_peerLocker.unlock();
         }
         return true;
     }
@@ -173,7 +183,8 @@ bool DLTask::event(QEvent *event)
 //        qDebug()<<Q_FUNC_INFO<<"downloadProgress downloadedSize "<<m_bytesDownloaded
 //               <<" totalSize "<<m_bytesFileSize
 //               <<" percent "<<(float)m_bytesDownloaded/(float)m_bytesFileSize;
-        m_dispatch->dispatchDLTaskInfo(m_uuid, m_dlTaskInfo);
+        ///FIXME dispatchDLTaskInfo in download progress may use lots of resources
+//        m_dispatch->dispatchDLTaskInfo(m_uuid, m_dlTaskInfo);
         emit downloadProgress(m_uuid, m_bytesReceived, m_bytesDownloaded, m_bytesFileSize);
         return true;
     }
@@ -186,39 +197,61 @@ bool DLTask::event(QEvent *event)
         if (e->isTaskPeerEvent()) {
             if (status == DLStatusEvent::DLStatus::DL_FINISH) {
                 if (allPeerCompleted()) {
-                    managerFinish();
-                    m_dispatch->dispatchDownloadStatus(m_uuid, DLStatusEvent::DLStatus::DL_FINISH, false);
+                    managerFinishedFile();
+//                    m_dispatch->dispatchDownloadStatus(m_uuid, DLStatusEvent::DLStatus::DL_FINISH, false);
+//                    m_DLStatus = DL_FINISH;
+//                    m_dlTaskInfo.setStatus(DLTaskInfo::TaskStatus::STATUS_STOP);
+                    m_peerLocker.lock();
+                    if (!m_peerList.isEmpty()) {
+                        foreach (DLTaskPeer *p, m_peerList) {
+                            while (!p->isFinished()) {
+                                qApp->processEvents();
+                            }
+                        }
+                        qDeleteAll(m_peerList);
+                        m_peerList.clear();
+                    }
+                    m_peerLocker.unlock();
+//                    emit statusChanged(m_uuid, m_DLStatus);
                 }
             }
         } else {
             if (status == DLStatusEvent::DLStatus::DL_FAILURE) {
                 m_DLStatus = DL_FAILURE;
+                m_dlTaskInfo.setStatus(DLTaskInfo::TaskStatus::STATUS_STOP);
             } else if (status == DLStatusEvent::DLStatus::DL_FINISH) {
                 m_DLStatus = DL_FINISH;
+                m_dlTaskInfo.setStatus(DLTaskInfo::TaskStatus::STATUS_STOP);
+                m_peerLocker.lock();
                 if (!m_peerList.isEmpty()) {
                     foreach (DLTaskPeer *p, m_peerList) {
                         while (!p->isFinished()) {
                             qApp->processEvents();
                         }
                     }
+                    qDeleteAll(m_peerList);
+                    m_peerList.clear();
                 }
-                qDeleteAll(m_peerList);
-                m_peerList.clear();
+                m_peerLocker.unlock();
             } else if (status == DLStatusEvent::DLStatus::DL_PROGRESSING) {
                 //TODO dummy
             } else if (status == DLStatusEvent::DLStatus::DL_START) {
                 m_DLStatus = DL_START;
+                m_dlTaskInfo.setStatus(DLTaskInfo::TaskStatus::STATUS_RUNNING);
             } else if (status == DLStatusEvent::DLStatus::DL_STOP) {
                 m_DLStatus = DL_STOP;
+                m_dlTaskInfo.setStatus(DLTaskInfo::TaskStatus::STATUS_STOP);
+                m_peerLocker.lock();
                 if (!m_peerList.isEmpty()) {
                     foreach (DLTaskPeer *p, m_peerList) {
                         while (!p->isFinished()) {
                             qApp->processEvents();
                         }
                     }
+                    qDeleteAll(m_peerList);
+                    m_peerList.clear();
                 }
-                qDeleteAll(m_peerList);
-                m_peerList.clear();
+                m_peerLocker.unlock();
             }
             emit statusChanged(m_uuid, m_DLStatus);
         }
@@ -256,16 +289,19 @@ void DLTask::abort()
 {
     qDebug()<<Q_FUNC_INFO<<"===========";
     m_DLStatus = DL_STOP;
+    m_peerLocker.lock();
     if (!m_peerList.isEmpty()) {
         foreach (DLTaskPeer *p, m_peerList) {
             p->abort();
+            while (!p->isFinished()) {
+                qApp->processEvents();
+            }
         }
+        m_peerLocker.unlock();
         m_dlTaskInfo.setStatus(DLTaskInfo::TaskStatus::STATUS_STOP);
         saveInfo();
-//        qDeleteAll(m_peerList);
-//        m_peerList.clear();
     }
-//    emit statusChanged(m_uuid, m_DLStatus);
+    m_peerLocker.unlock();
     m_dispatch->dispatchDownloadStatus(m_uuid, DLStatusEvent::DLStatus::DL_STOP, false);
 }
 
@@ -286,8 +322,6 @@ void DLTask::resume()
     } else {
         initTaskInfo();
         download();
-//        emit statusChanged(m_uuid, m_DLStatus);
-        m_dispatch->dispatchDownloadStatus(m_uuid, DLStatusEvent::DLStatus::DL_START, false);
     }
 }
 
@@ -335,6 +369,7 @@ void DLTask::download()
     m_dlTaskInfo.setStatus(DLTaskInfo::STATUS_RUNNING);
     m_transDB->appendTaskInfo(m_dlTaskInfo);
     m_transDB->flush();
+    m_dispatch->dispatchDownloadStatus(m_uuid, DLStatusEvent::DLStatus::DL_START, false);
     m_dispatch->dispatchDLTaskInfo(m_uuid, m_dlTaskInfo);
 }
 
@@ -474,9 +509,9 @@ void DLTask::saveInfo()
     }
     m_dlTaskInfo.setPeerList(list);
     m_dlTaskInfo.setReadySize(m_bytesDownloaded);
-    m_dispatch->dispatchDLTaskInfo(m_uuid, m_dlTaskInfo);
     m_transDB->appendTaskInfo(m_dlTaskInfo);
     m_transDB->flush();
+    m_dispatch->dispatchDLTaskInfo(m_uuid, m_dlTaskInfo);
 }
 
 bool DLTask::peerCompleted(const DLTaskPeerInfo &info)
@@ -513,7 +548,7 @@ bool DLTask::allPeerCompleted()
     return ret;
 }
 
-void DLTask::managerFinish()
+void DLTask::managerFinishedFile()
 {
     qDebug()<<Q_FUNC_INFO<<">>>>>>>>>>>>>>>>>>>>>>>>> dl finish";
 
@@ -526,10 +561,17 @@ void DLTask::managerFinish()
     }
     if (error) {
         qCritical()<<Q_FUNC_INFO<<"Manager finish error as some download peer not finish!!!";
+//        m_DLStatus = DL_STOP;
+//        m_dlTaskInfo.setStatus(DLTaskInfo::STATUS_STOP);
+//        m_dispatch->dispatchDownloadStatus(m_uuid, DLStatusEvent::DLStatus::DL_STOP, false);
+//        m_dispatch->dispatchDLTaskInfo(m_uuid, m_dlTaskInfo);
+//        m_dlTaskInfo.setStatus(DLTaskInfo::TaskStatus::STATUS_STOP);
+//        saveInfo();
+        abort();
         return;
     }
-    qDeleteAll(m_peerList);
-    m_peerList.clear();
+//    qDeleteAll(m_peerList);
+//    m_peerList.clear();
 
 //    if (m_workerThread->isRunning()) {
 //        m_workerThread->quit();
@@ -539,6 +581,7 @@ void DLTask::managerFinish()
 
     m_DLStatus = DL_FINISH;
     m_dlTaskInfo.setStatus(DLTaskInfo::STATUS_STOP);
+    m_dispatch->dispatchDownloadStatus(m_uuid, DLStatusEvent::DLStatus::DL_FINISH, false);
     m_dispatch->dispatchDLTaskInfo(m_uuid, m_dlTaskInfo);
     m_transDB->removeTaskInfo(m_dlTaskInfo);
     m_transDB->flush();

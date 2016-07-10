@@ -146,12 +146,16 @@ DLTaskPeer::DLTaskPeer(DLTaskStateDispatch *dispatch, const DLTaskPeerInfo &info
     , m_peerInfo(info)
     , m_doneCount(0)
     , m_peerSize(0)
+    , m_replyFinish(false)
 {
     qDebug()<<Q_FUNC_INFO<<" info is "<<m_peerInfo;
 
     m_file->setFileName (m_peerInfo.filePath());
     if (!m_file->open(QIODevice::ReadWrite)) {
         qCritical()<<Q_FUNC_INFO<<"open error for "<<m_file->fileName();
+        m_replyFinish = true;
+        m_reply->abort();
+        m_dispatch->dispatchDownloadStatus(m_hash, DLStatusEvent::DLStatus::DL_FAILURE, true);
         return;
     }
 
@@ -229,12 +233,13 @@ DLTaskPeer::DLTaskPeer(DLTaskStateDispatch *dispatch, const DLTaskPeerInfo &info
                 m_dispatch->dispatchDownloadStatus(m_hash, DLStatusEvent::DLStatus::DL_FAILURE, true);
             }
         }
+        m_replyFinish = true;
     });
 }
 
 DLTaskPeer::~DLTaskPeer()
 {
-    qDebug()<<Q_FUNC_INFO<<"  "<<m_hash;
+    qDebug()<<Q_FUNC_INFO<<" ========= "<<m_hash;
     if (m_reply) {
         if (!m_reply->isFinished()) {
             m_reply->abort();
@@ -274,7 +279,7 @@ qint64 DLTaskPeer::doneCount() const {
 
 bool DLTaskPeer::isFinished() const
 {
-    return m_reply->isFinished();
+    return m_reply->isFinished() && m_replyFinish;
 }
 
 void DLTaskPeer::setDoneCount(const quint64 &doneCount) {
