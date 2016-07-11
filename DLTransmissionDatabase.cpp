@@ -16,24 +16,17 @@ namespace YADownloader {
 DLTransmissionDatabase::DLTransmissionDatabase(QObject *parent)
     : QObject(parent)
 {
-    QString dataPath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
-    QDir dir(dataPath);
-    if (!dir.exists())
-        dir.mkpath(dataPath);
-    m_cfgFile = QString("%1/data.json").arg(dataPath);
-    loadFromLocalStorage();
-    emit listChanged();
+    initiate();
 }
 
 DLTransmissionDatabase::~DLTransmissionDatabase()
 {
-    qDebug()<<Q_FUNC_INFO<<"<<<<<<<<<<<<";
     saveToLocalStorage();
 }
 
 void DLTransmissionDatabase::removeTaskInfo(const DLTaskInfo &info)
 {
-    int ret = m_infoHash.remove(info.requestUrl()+info.filePath());
+    int ret = onRemoveTaskInfo(info);
     if (ret < 1) {
         qWarning()<<Q_FUNC_INFO<<"Remove info ["<<info<<"] error!!";
     }
@@ -42,7 +35,7 @@ void DLTransmissionDatabase::removeTaskInfo(const DLTaskInfo &info)
 
 void DLTransmissionDatabase::appendTaskInfo(const DLTaskInfo &info)
 {
-    m_infoHash.insert(info.requestUrl()+info.filePath(), info);
+    onAppendTaskInfo(info);
     emit listChanged();
 }
 
@@ -56,10 +49,44 @@ void DLTransmissionDatabase::flush()
     saveToLocalStorage();
 }
 
+QHash<QString, DLTaskInfo> *DLTransmissionDatabase::dataHash()
+{
+    return &m_infoHash;
+}
+
+QString DLTransmissionDatabase::cfgFile()
+{
+    QString dataPath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
+    return QString("%1/data.json").arg(dataPath);
+}
+
+void DLTransmissionDatabase::onAppendTaskInfo(const DLTaskInfo &info)
+{
+    //TODO use info.identifier() ??
+    m_infoHash.insert(info.requestUrl()+info.filePath(), info);
+}
+
+int DLTransmissionDatabase::onRemoveTaskInfo(const DLTaskInfo &info)
+{
+    //TODO use info.identifier() ??
+    return m_infoHash.remove(info.requestUrl()+info.filePath());
+}
+
+void DLTransmissionDatabase::initiate()
+{
+    m_cfgFile = cfgFile();
+    QFileInfo info(m_cfgFile);
+    QString dataPath = info.absolutePath();
+    QDir dir(dataPath);
+    if (!dir.exists())
+        dir.mkpath(dataPath);
+    loadFromLocalStorage();
+    emit listChanged();
+}
+
 void DLTransmissionDatabase::loadFromLocalStorage()
 {
     m_infoHash.clear();
-
     QFile file(m_cfgFile);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))  {
         qDebug()<<Q_FUNC_INFO<<"Can't open exist data files";

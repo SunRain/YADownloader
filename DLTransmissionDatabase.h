@@ -29,6 +29,17 @@ public:
 
     void flush();
 
+protected:
+    ///
+    /// \brief initiate
+    /// Call this in constructor
+    ///
+    void initiate();
+
+    QHash<QString, DLTaskInfo> *dataHash();
+    virtual QString cfgFile();
+    virtual void onAppendTaskInfo(const DLTaskInfo &info);
+    virtual int onRemoveTaskInfo(const DLTaskInfo &info);
 signals:
     void listChanged();
 
