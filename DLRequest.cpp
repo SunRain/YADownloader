@@ -99,8 +99,13 @@ QString DLRequest::filePath() const {
     }
     QString savePath = d.data()->savePath;
     QString saveName = d.data()->saveName;
+
     if (savePath.startsWith("file://")) { //remove file:// scheme
+#if defined(Q_OS_WIN) || defined(Q_OS_WIN32)
+        savePath = savePath.right(savePath.length() - 8);
+#else
         savePath = savePath.right(savePath.length() - 7);
+#endif
     }
     if (savePath.endsWith("/")) { //remove last /
         savePath = savePath.left(savePath.length() -1);
