@@ -14,6 +14,9 @@ class YADOWNLOADERSHARED_EXPORT DLTaskImpl : public DLTask
     Q_OBJECT
 public:
     explicit DLTaskImpl(const DLRequest &request, DLTransmissionDatabase *db, QObject *parent = 0);
+    explicit DLTaskImpl(const DLTaskInfo &info, DLTransmissionDatabase *db,
+                        const QHash<QByteArray, QByteArray> &rawHeaders = QHash<QByteArray, QByteArray>(),
+                        QObject *parent = 0);
 
 };
 

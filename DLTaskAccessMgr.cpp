@@ -3,6 +3,7 @@
 #include <QDebug>
 #include <QMutex>
 #include <QScopedPointer>
+#include <QFileInfo>
 
 #include "DLTaskImpl.h"
 #include "DLTransmissionDatabase.h"
@@ -36,18 +37,58 @@ DLTaskAccessMgr::~DLTaskAccessMgr()
     disconnect(getTransDB(), 0, 0, 0);
 }
 
-DLTask *DLTaskAccessMgr::get(const DLRequest &request)
+DLTask *DLTaskAccessMgr::get(const DLRequest &request, bool overrideByAccessMgrHeader)
 {
-    DLTaskImpl *task = new DLTaskImpl(request, getTransDB());
+    DLRequest req = request;
+    if (overrideByAccessMgrHeader) {
+        foreach (const QByteArray &key, m_headerList.keys()) {
+            req.setRawHeader(key, m_headerList.value(key));
+        }
+    }
+    DLTaskImpl *task = new DLTaskImpl(req, getTransDB());
     ///FIXME append but not remove uuids may cause big-big length of QStringList
     if (!m_runningUUID.contains(task->uuid()))
         m_runningUUID.append(task->uuid());
     return task;
 }
 
+DLTask *DLTaskAccessMgr::get(const QString &identifier)
+{
+    if (identifier.isEmpty())
+        return nullptr;
+    DLTaskInfo info;
+    foreach (const DLTaskInfo &i, m_list) {
+        if (i.identifier() == identifier) {
+            info = i;
+            break;
+        }
+    }
+    if (info.isEmpty())
+        return nullptr;
+    DLTaskImpl *task = new DLTaskImpl(info, getTransDB(), m_headerList);
+    ///FIXME append but not remove uuids may cause big-big length of QStringList
+//    if (!m_runningUUID.contains(task->uuid()))
+//        m_runningUUID.append(task->uuid());
+    return task;
+
+
+}
+
 DLTaskInfoList DLTaskAccessMgr::resumables() const
 {
     return m_list;
+}
+
+void DLTaskAccessMgr::setRawHeader(const QByteArray &name, const QByteArray &value)
+{
+    if (name.isEmpty())
+        return;
+    m_headerList.insert(name, value);
+}
+
+QHash<QByteArray, QByteArray> DLTaskAccessMgr::rawHeaders() const
+{
+    return m_headerList;
 }
 
 DLTransmissionDatabase *DLTaskAccessMgr::getTransDB()

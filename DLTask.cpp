@@ -56,7 +56,27 @@ DLTask::DLTask(DLTransmissionDatabase *db, const DLRequest &request, QObject *pa
 //        if(m_DLStatus != DL_STOP || m_DLStatus != DL_FINISH) {
 //            abort();
 //        }
-//    });
+    //    });
+}
+
+DLTask::DLTask(DLTransmissionDatabase *db, const DLTaskInfo &info,
+               const QHash<QByteArray, QByteArray> &rawHeaders,
+               QObject *parent)
+    : DLTask(db, DLRequest(), parent)
+
+{
+    m_uuid = info.identifier();
+    m_dlTaskInfo = info;
+
+    QFileInfo fi(info.filePath());
+    m_dlRequest.setDownloadUrl(info.downloadUrl());
+    m_dlRequest.setPreferThreadCount(info.peerList().size());
+    m_dlRequest.setRequestUrl(info.requestUrl());
+    m_dlRequest.setSaveName(fi.fileName());
+    m_dlRequest.setSavePath(fi.absoluteFilePath());
+    foreach (const QByteArray &key, rawHeaders) {
+        m_dlRequest.setRawHeader(key, rawHeaders.value(key));
+    }
 }
 
 DLTask::~DLTask()

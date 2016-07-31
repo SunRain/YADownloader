@@ -7,4 +7,11 @@ DLTaskImpl::DLTaskImpl(const DLRequest &request, DLTransmissionDatabase *db, QOb
 {
 }
 
+DLTaskImpl::DLTaskImpl(const DLTaskInfo &info, DLTransmissionDatabase *db,
+                       const QHash<QByteArray, QByteArray> &rawHeaders, QObject *parent)
+    : DLTask(db, info, rawHeaders, parent)
+{
+
+}
+
 } //YADownloader

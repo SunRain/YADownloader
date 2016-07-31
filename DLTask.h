@@ -96,6 +96,9 @@ protected:
 protected:
     DLTask(DLTransmissionDatabase *db, QObject *parent = 0);
     DLTask(DLTransmissionDatabase *db, const DLRequest &request, QObject *parent = 0);
+    DLTask(DLTransmissionDatabase *db, const DLTaskInfo &info,
+           const QHash<QByteArray, QByteArray> &rawHeaders = QHash<QByteArray, QByteArray>(),
+           QObject *parent = 0);
     void setRequest(const DLRequest &request);
 
 signals:
