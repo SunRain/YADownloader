@@ -96,6 +96,9 @@ protected:
 protected:
     DLTask(DLTransmissionDatabase *db, QObject *parent = 0);
     DLTask(DLTransmissionDatabase *db, const DLRequest &request, QObject *parent = 0);
+    DLTask(DLTransmissionDatabase *db, const DLTaskInfo &info,
+           const QHash<QByteArray, QByteArray> &rawHeaders = QHash<QByteArray, QByteArray>(),
+           QObject *parent = 0);
     void setRequest(const DLRequest &request);
 
 signals:
@@ -122,6 +125,7 @@ private:
     bool allPeerCompleted();
     void managerFinishedFile();
     QString adjustSaveName(const DLRequest &req);
+    QString constructFileNameSuffix(const QString &filePath);
 
 private:
     QNetworkAccessManager *m_networkMgr;
@@ -143,6 +147,7 @@ private:
     QMutex m_peerLocker;
 
     bool m_overwriteExistFile;
+    bool m_constructFromResumable;
     int m_initHeaderCounts;
 //    int m_peerCount;            //分解的数据块量
 //    int m_peerSize;             //每个数据块大小

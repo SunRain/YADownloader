@@ -3,6 +3,7 @@
 #include <QDebug>
 #include <QDir>
 #include <QSharedData>
+#include <QUrl>
 
 namespace YADownloader {
 
@@ -10,8 +11,8 @@ class DLRequestPriv : public QSharedData
 {
 public:
     DLRequestPriv()
-        : requestUrl(QUrl())
-        , downloadUrl(QUrl())
+        : requestUrl(QString())
+        , downloadUrl(QString())
         , savePath(QString())
         , saveName(QString())
         , preferThreadCount(1)
@@ -19,8 +20,8 @@ public:
     }
     virtual ~DLRequestPriv() {}
 
-    QUrl requestUrl;
-    QUrl downloadUrl;
+    QString requestUrl;
+    QString downloadUrl;
     QString savePath;
     QString saveName;
     QHash<QByteArray, QByteArray> headerList;
@@ -33,7 +34,7 @@ DLRequest::DLRequest()
 {
 }
 
-DLRequest::DLRequest(const QUrl &url, const QString &savePath, const QString &saveName)
+DLRequest::DLRequest(const QString &url, const QString &savePath, const QString &saveName)
     : d(new DLRequestPriv())
 //    : m_requestUrl(url)
 //    , m_downloadUrl(m_requestUrl)
@@ -92,9 +93,10 @@ bool DLRequest::hasSameIdentifier(const DLRequest &other)
             && d.data()->savePath == other.d.data()->savePath;
 }
 
-QString DLRequest::filePath() const {
+QString DLRequest::filePath() const
+{
     if (d.data()->savePath.isEmpty() || d.data()->saveName.isEmpty()
-            || d.data()->downloadUrl.isEmpty() || !d.data()->downloadUrl.isValid()) {
+            || d.data()->downloadUrl.isEmpty()) {
         return QString();
     }
     QString savePath = d.data()->savePath;
@@ -126,12 +128,12 @@ QHash<QByteArray, QByteArray> DLRequest::rawHeaders() const {
     return d.data()->headerList;
 }
 
-QUrl DLRequest::requestUrl() const
+QString DLRequest::requestUrl() const
 {
     return d.data()->requestUrl;
 }
 
-void DLRequest::setRequestUrl(const QUrl &url)
+void DLRequest::setRequestUrl(const QString &url)
 {
     d.data()->requestUrl = sortUrlQuery(url);
     d.data()->downloadUrl = d.data()->requestUrl;
@@ -167,24 +169,27 @@ void DLRequest::setPreferThreadCount(int preferThreadCount)
     d.data()->preferThreadCount = preferThreadCount;
 }
 
-QUrl DLRequest::downloadUrl() const
+QString DLRequest::downloadUrl() const
 {
     return d.data()->downloadUrl;
 }
 
-void DLRequest::setDownloadUrl(const QUrl &downloadUrl)
+void DLRequest::setDownloadUrl(const QString &downloadUrl)
 {
     d.data()->downloadUrl = sortUrlQuery(downloadUrl);
 }
 
-QUrl DLRequest::sortUrlQuery(const QUrl &url)
+QString DLRequest::sortUrlQuery(const QString &url)
 {
-    QStringList list = url.toString().split("?");
+    if (url.isEmpty())
+        return QString();
+    QStringList list = url.split("?");
     if (list.isEmpty() || list.size() != 2)
         return url;
     QStringList querylist = list.last().split("&");
     qStableSort(querylist.begin(), querylist.end(), qGreater<QString>());
-    return QUrl(QString("%1?%2").arg(list.at(0)).arg(querylist.join("&")));
+    QUrl u(QString("%1?%2").arg(list.at(0)).arg(querylist.join("&")));
+    return QString(u.toEncoded());
 }
 
 QDebug operator <<(QDebug dbg, const DLRequest &req)
@@ -194,7 +199,7 @@ QDebug operator <<(QDebug dbg, const DLRequest &req)
         list.append(QString("%1=%2").arg(QString(key)).arg(QString(req.rawHeaders().value(key))));
     }
     return dbg<<QString("DLRequest [requestUrl=%1], [downloadUrl=%2], [filePath=%3], [preferThreadCount=%4]")
-                .arg(req.requestUrl().toString()).arg(req.downloadUrl().toString())
+                .arg(req.requestUrl()).arg(req.downloadUrl())
                 .arg(req.filePath()).arg(req.preferThreadCount())
              <<QString(" [rawHeaders >>> %1]").arg(list.join(","));
 }

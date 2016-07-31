@@ -1,7 +1,6 @@
 #ifndef DLREQUEST_H
 #define DLREQUEST_H
 
-#include <QUrl>
 #include <QHash>
 #include <QSharedDataPointer>
 
@@ -14,7 +13,7 @@ class YADOWNLOADERSHARED_EXPORT DLRequest
 {
 public:
     DLRequest();
-    DLRequest(const QUrl &requestUrl, const QString &savePath, const QString &saveName);
+    DLRequest(const QString &requestUrl, const QString &savePath, const QString &saveName);
     DLRequest(const DLRequest &other);
     virtual ~DLRequest();
 
@@ -43,8 +42,8 @@ public:
     /// \brief requestUrl url for download request
     /// \return
     ///
-    QUrl requestUrl() const;
-    void setRequestUrl(const QUrl &requestUrl);
+    QString requestUrl() const;
+    void setRequestUrl(const QString &requestUrl);
 
     QString savePath() const;
     void setSavePath(const QString &savePath);
@@ -59,11 +58,12 @@ public:
     /// \brief downloadUrl url for real download url if url redirect
     /// \return
     ///
-    QUrl downloadUrl() const;
-    void setDownloadUrl(const QUrl &downloadUrl);
+    QString downloadUrl() const;
+    void setDownloadUrl(const QString &downloadUrl);
 
 private:
-    QUrl sortUrlQuery(const QUrl &url);
+    QString sortUrlQuery(const QString &url);
+
 private:
     QSharedDataPointer<YADownloader::DLRequestPriv> d;
 };

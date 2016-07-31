@@ -18,7 +18,9 @@ public:
     explicit DLTaskAccessMgr(QObject *parent = 0);
     virtual ~DLTaskAccessMgr();
 
-    DLTask *get(const DLRequest &request);
+    DLTask *get(const DLRequest &request, bool overrideByAccessMgrHeader = false);
+
+    DLTask *get(const QString &identifier);
 
     ///
     /// \brief resumables
@@ -27,6 +29,9 @@ public:
     /// If uuid of resumable DLTaskInfo not included in current running DLTask, if would be empty string
     ///
     DLTaskInfoList resumables() const;
+
+    void setRawHeader(const QByteArray &name, const QByteArray &value);
+    QHash<QByteArray, QByteArray> rawHeaders() const;
 
 protected:
     static DLTransmissionDatabase *getTransDB();
@@ -37,6 +42,7 @@ signals:
 private:
     DLTaskInfoList m_list;
     QStringList m_runningUUID;
+    QHash<QByteArray, QByteArray> m_headerList;
 
 };
 

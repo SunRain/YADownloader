@@ -42,13 +42,14 @@ DLTask::DLTask(DLTransmissionDatabase *db, const DLRequest &request, QObject *pa
     , m_dlRequest(request)
     , m_DLStatus(DL_STOP)
     , m_overwriteExistFile(false)
+    , m_constructFromResumable(false)
     , m_initHeaderCounts(3)
     , m_bytesFileSize(-1)
     , m_bytesDownloaded(0)
     , m_bytesReceived(0)
     , m_bytesStartFileOffest(0)
 {
-    QString value = QUuid::createUuid().toString() + m_dlRequest.requestUrl().toString();
+    QString value = QUuid::createUuid().toString() + m_dlRequest.requestUrl();
     m_uuid = QString(QCryptographicHash::hash(value.toUtf8(), QCryptographicHash::Md5).toHex());
 
 //    connect (m_workerThread, &QThread::finished, [&]() {
@@ -56,7 +57,29 @@ DLTask::DLTask(DLTransmissionDatabase *db, const DLRequest &request, QObject *pa
 //        if(m_DLStatus != DL_STOP || m_DLStatus != DL_FINISH) {
 //            abort();
 //        }
-//    });
+    //    });
+
+}
+
+DLTask::DLTask(DLTransmissionDatabase *db, const DLTaskInfo &info,
+               const QHash<QByteArray, QByteArray> &rawHeaders,
+               QObject *parent)
+    : DLTask(db, DLRequest(), parent)
+
+{
+    m_uuid = info.identifier();
+    m_dlTaskInfo = info;
+
+    QFileInfo fi(info.filePath());
+    m_dlRequest.setDownloadUrl(info.downloadUrl());
+    m_dlRequest.setPreferThreadCount(info.peerList().size());
+    m_dlRequest.setRequestUrl(info.requestUrl());
+    m_dlRequest.setSaveName(fi.fileName());
+    m_dlRequest.setSavePath(fi.absolutePath());
+    foreach (const QByteArray &key, rawHeaders.keys()) {
+        m_dlRequest.setRawHeader(key, rawHeaders.value(key));
+    }
+    m_constructFromResumable = true;
 }
 
 DLTask::~DLTask()
@@ -339,8 +362,9 @@ void DLTask::download()
         m_bytesStartFileOffest += info.dlCompleted();
 
 
-        ///NOTE we still start a new request as we need to save the request infomation into local storage
-        ///
+        /*
+         * NOTE we still start a new request as we need to save the request infomation into local storage
+         */
 //        if (peerCompleted(info))
 //            continue;
         QNetworkRequest req(m_dlRequest.downloadUrl ());
@@ -351,9 +375,11 @@ void DLTask::download()
                 req.setRawHeader(key, m_dlRequest.rawHeaders().value(key, QByteArray()));
             }
         }
-        ///NOTE if Range is not supported by remote server or we can't get remote file size,
-        /// we DISABLE resume downloading
-        /// Need forther codeing
+        /*
+         * NOTE if Range is not supported by remote server or we can't get remote file size,
+         * we DISABLE resume downloading
+         * Need forther codeing
+         */
         if (m_bytesFileSize > 0) {
             QString range = QString("bytes=%1-%2").arg(info.rangeStart()).arg(info.endIndex());
             req.setRawHeader ("Range", range.toUtf8 ());
@@ -407,8 +433,17 @@ void DLTask::initTaskInfo()
         }
     }
 
+    /* An exist dltask in database, but we start a new dltask
+     * Thus we need to adjust file save name and clear m_dlTaskInfo
+     */
+    if (!m_constructFromResumable && !m_dlTaskInfo.isEmpty()) {
+        m_dlRequest.setSaveName(constructFileNameSuffix(m_dlTaskInfo.filePath()));
+        m_dlTaskInfo.clear();
+    }
+
     /// If we find task info in database
     if (!m_dlTaskInfo.isEmpty()) {
+
         /// Exist download finished
         if (QFile::exists(m_dlTaskInfo.filePath())) {
             m_dlTaskInfo.clear();
@@ -445,10 +480,10 @@ void DLTask::initTaskInfo()
                     m_dlTaskInfo.setPeerList(list);
                 }
             }
-        } else { /// Exist download not finished
-
-            /// Download not finished, but tmp file was removed
-            /// We need to reset its peer info to start a new dl
+        } else { // Exist download not finished
+            /* Download not finished, but tmp file was removed
+             * We need to reset its peer info to start a new dl
+             */
             if (!QFile::exists(m_dlTaskInfo.filePath()+PEER_TAG)) {
                 DLTaskPeerInfoList list;
                 foreach (DLTaskPeerInfo i, m_dlTaskInfo.peerList()) {
@@ -483,11 +518,11 @@ void DLTask::initTaskInfo()
             pInfo.setFilePath(m_dlRequest.filePath() + PEER_TAG);
             peerInfoList.append(pInfo);
         }
-        m_dlTaskInfo.setDownloadUrl(m_dlRequest.downloadUrl().toString());
+        m_dlTaskInfo.setDownloadUrl(m_dlRequest.downloadUrl());
         m_dlTaskInfo.setFilePath(m_dlRequest.filePath());
         m_dlTaskInfo.setPeerList(peerInfoList);
         m_dlTaskInfo.setReadySize(0);
-        m_dlTaskInfo.setRequestUrl(m_dlRequest.requestUrl().toString());
+        m_dlTaskInfo.setRequestUrl(m_dlRequest.requestUrl());
         m_dlTaskInfo.setTotalSize(m_bytesFileSize);
     }
     if (!m_dlTaskInfo.isEmpty()) {
@@ -629,12 +664,40 @@ QString DLTask::adjustSaveName(const DLRequest &req)
     /// We check real target file name (means name without PEER_TAG),
     /// this means, if there's a running && not finished (but current stopped) download task,
     /// current new request will point to this task
-    do {
+    while(true) {
+        if (!QFile::exists(nName))
+            break;
         nName = QString("%1/%2-%3.%4").arg(dir).arg(name).arg(tail).arg(suffix);
         tail++;
-    } while (QFile::exists(nName));
+    }
+    QFileInfo fi(nName);
 
-    return QString("%1-%2.%3").arg(name).arg(tail).arg(suffix);
+    qDebug()<<Q_FUNC_INFO<<" --------- "<<fi.fileName();
+    return fi.fileName();
+}
+
+QString DLTask::constructFileNameSuffix(const QString &filePath)
+{
+    if (filePath.isEmpty()) {
+        qCritical()<<Q_FUNC_INFO<<"Basename is empty!!!!";
+        return QString();
+    }
+    QFileInfo info(filePath);
+    QString dir = info.absolutePath();
+    QString name = info.baseName();
+    QString suffix = info.completeSuffix();
+    QString nName;
+    int tail = 0;
+    while (true) {
+        nName = QString("%1/%2-%3.%4").arg(dir).arg(name).arg(tail).arg(suffix);
+        if (!QFile::exists(nName))
+            break;
+        tail++;
+    }
+    QFileInfo fi(nName);
+
+    qDebug()<<Q_FUNC_INFO<<" --------- "<<fi.fileName();
+    return fi.fileName();
 }
 
 

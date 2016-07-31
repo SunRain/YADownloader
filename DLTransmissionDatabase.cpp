@@ -62,14 +62,12 @@ QString DLTransmissionDatabase::cfgFile()
 
 void DLTransmissionDatabase::onAppendTaskInfo(const DLTaskInfo &info)
 {
-    //TODO use info.identifier() ??
-    m_infoHash.insert(info.requestUrl()+info.filePath(), info);
+    m_infoHash.insert(info.identifier(), info);
 }
 
 int DLTransmissionDatabase::onRemoveTaskInfo(const DLTaskInfo &info)
 {
-    //TODO use info.identifier() ??
-    return m_infoHash.remove(info.requestUrl()+info.filePath());
+    return m_infoHash.remove(info.identifier());
 }
 
 void DLTransmissionDatabase::initiate()
@@ -124,7 +122,7 @@ void DLTransmissionDatabase::loadFromLocalStorage()
             plist.append(p);
         }
         info.setPeerList(plist);
-        m_infoHash.insert(info.requestUrl()+info.filePath(), info);
+        m_infoHash.insert(info.identifier(), info);
     }
     file.close();
 }

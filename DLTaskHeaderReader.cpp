@@ -92,7 +92,7 @@ void DLTaskHeaderReader::run() {
         QNetworkRequest req = QNetworkRequest(rqurl);
         if (!m_dlRequest->rawHeaders().isEmpty()) {
             foreach (QByteArray key, m_dlRequest->rawHeaders().keys()) {
-                req.setRawHeader (key, m_dlRequest->rawHeaders().value(key, QByteArray()));
+                req.setRawHeader(key, m_dlRequest->rawHeaders().value(key, QByteArray()));
             }
         }
         m_reply = networkMgr->head(req);
@@ -150,7 +150,7 @@ void DLTaskHeaderReader::run() {
                                 QUrl url = m_reply->header(QNetworkRequest::LocationHeader).toUrl();
                                 if (url.isValid ()) {
                                     qDebug()<<Q_FUNC_INFO<<"real download url: "<<url;
-                                    m_dlRequest->setDownloadUrl(url);
+                                    m_dlRequest->setDownloadUrl(url.toString());
                                 }
                                 FREE_REPLY;
                                 m_dispatch->dispatchFileSize(size);
