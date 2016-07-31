@@ -57,6 +57,7 @@ DLTask::DLTask(DLTransmissionDatabase *db, const DLRequest &request, QObject *pa
 //            abort();
 //        }
     //    });
+
 }
 
 DLTask::DLTask(DLTransmissionDatabase *db, const DLTaskInfo &info,
@@ -503,11 +504,11 @@ void DLTask::initTaskInfo()
             pInfo.setFilePath(m_dlRequest.filePath() + PEER_TAG);
             peerInfoList.append(pInfo);
         }
-        m_dlTaskInfo.setDownloadUrl(m_dlRequest.downloadUrl().toString());
+        m_dlTaskInfo.setDownloadUrl(QString(m_dlRequest.downloadUrl().toEncoded()));
         m_dlTaskInfo.setFilePath(m_dlRequest.filePath());
         m_dlTaskInfo.setPeerList(peerInfoList);
         m_dlTaskInfo.setReadySize(0);
-        m_dlTaskInfo.setRequestUrl(m_dlRequest.requestUrl().toString());
+        m_dlTaskInfo.setRequestUrl(QString(m_dlRequest.requestUrl().toEncoded()));
         m_dlTaskInfo.setTotalSize(m_bytesFileSize);
     }
     if (!m_dlTaskInfo.isEmpty()) {
