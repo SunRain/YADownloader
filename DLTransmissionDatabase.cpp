@@ -122,7 +122,8 @@ void DLTransmissionDatabase::loadFromLocalStorage()
             plist.append(p);
         }
         info.setPeerList(plist);
-        m_infoHash.insert(info.identifier(), info);
+//        m_infoHash.insert(info.identifier(), info);
+        appendTaskInfo(info);
     }
     file.close();
 }
