@@ -12,6 +12,13 @@ class DLRequestPriv;
 class YADOWNLOADERSHARED_EXPORT DLRequest
 {
 public:
+    enum CookieFileModeFlag {
+        NotOpen = 0x0,
+        ReadOnly = 0x1,
+        WriteOnly = 0x2,
+        ReadWrite = ReadOnly | WriteOnly
+    };
+
     DLRequest();
     DLRequest(const QString &requestUrl, const QString &savePath, const QString &saveName);
     DLRequest(const DLRequest &other);
@@ -20,6 +27,12 @@ public:
     DLRequest &operator =(const DLRequest &other);
     bool operator ==(const DLRequest &other) const;
     bool operator !=(const DLRequest &other) const;
+
+    QString cookieFilePath() const;
+
+    CookieFileModeFlag cookieFileMode() const;
+
+    void setCookieFilePath(const QString &cookieFilePath, CookieFileModeFlag flag = CookieFileModeFlag::ReadOnly);
 
     ///
     /// \brief hasSameIdentifier

@@ -15,7 +15,7 @@ class YADOWNLOADERSHARED_EXPORT DLTaskAccessMgr : public QObject
 {
     Q_OBJECT
 public:
-    explicit DLTaskAccessMgr(QObject *parent = 0);
+    explicit DLTaskAccessMgr(QObject *parent = Q_NULLPTR);
     virtual ~DLTaskAccessMgr();
 
     DLTask *get(const DLRequest &request, bool overrideByAccessMgrHeader = false);
@@ -40,6 +40,8 @@ signals:
     void resumablesChanged(const DLTaskInfoList &list);
 
 private:
+//    CookieFileModeFlag m_cookieModeFlag;
+//    QString                     m_cookieFilePath;
     DLTaskInfoList m_list;
     QStringList m_runningUUID;
     QHash<QByteArray, QByteArray> m_headerList;

@@ -11,9 +11,13 @@
 #include <QUuid>
 #include <QCoreApplication>
 
-#include <QNetworkAccessManager>
-#include <QNetworkReply>
-#include <QNetworkRequest>
+//#include <QNetworkAccessManager>
+//#include <QNetworkReply>
+//#include <QNetworkRequest>
+
+#include "QCNetworkAccessManager.h"
+#include "QCNetworkAsyncReply.h"
+#include "QCNetworkRequest.h"
 
 #include "DLRequest.h"
 #include "SignalCenter.h"
@@ -21,6 +25,8 @@
 #include "DLTaskStateDispatch.h"
 #include "DLTaskHeaderReader.h"
 #include "DLTransmissionDatabase.h"
+
+using namespace QCurl;
 
 namespace YADownloader {
 
@@ -33,7 +39,7 @@ DLTask::DLTask(DLTransmissionDatabase *db, QObject *parent)
 
 DLTask::DLTask(DLTransmissionDatabase *db, const DLRequest &request, QObject *parent)
     : QObject(parent)
-    , m_networkMgr(new QNetworkAccessManager(this))
+    , m_networkMgr(new QCNetworkAccessManager(this))
     , m_reply(nullptr)
 //    , m_workerThread(new QThread(this))
     , m_headerReader(nullptr)
@@ -124,6 +130,11 @@ void DLTask::setRequest(const DLRequest &request) {
 
 DLRequest DLTask::request() const {
     return m_dlRequest;
+}
+
+DLRequest *DLTask::requestPtr()
+{
+    return &m_dlRequest;
 }
 
 DLTaskInfo DLTask::taskInfo() const
@@ -217,7 +228,7 @@ bool DLTask::event(QEvent *event)
         DLStatusEvent *e = (DLStatusEvent*)event;
         QString hash = e->hash();
         DLStatusEvent::DLStatus status = e->status();
-        qDebug()<<Q_FUNC_INFO<<">>>>>>>>>>>>> DLTASK_EVENT_DL_STATUS for hash "<<hash
+        qDebug()<<Q_FUNC_INFO<<">>>>>>>>>>>>> DLTASK_EVENT_DL_STATUS ["<<status<<"] for hash "<<hash
                <<"  is peere event "<<e->isTaskPeerEvent();
         if (e->isTaskPeerEvent()) {
             if (status == DLStatusEvent::DLStatus::DL_FINISH) {
@@ -356,6 +367,19 @@ void DLTask::download()
 //        m_workerThread->quit();
 //    m_workerThread->wait();
 
+    if (!m_dlRequest.cookieFilePath().isEmpty()) {
+        DLRequest::CookieFileModeFlag flag = m_dlRequest.cookieFileMode();
+        int mode = QCNetworkAccessManager::NotOpen;
+        if ((flag & DLRequest::ReadOnly) == DLRequest::ReadOnly) {
+            mode |= QCNetworkAccessManager::CookieFileModeFlag::ReadOnly;
+        }
+        if ((flag & DLRequest::WriteOnly) == DLRequest::WriteOnly) {
+            mode |= QCNetworkAccessManager::CookieFileModeFlag::WriteOnly;
+        }
+        m_networkMgr->setCookieFilePath(m_dlRequest.cookieFilePath(),
+                                      static_cast<QCNetworkAccessManager::CookieFileModeFlag>(mode));
+    }
+
     DLTaskPeerInfoList peerInfoList = m_dlTaskInfo.peerList();
     foreach (DLTaskPeerInfo info, peerInfoList) {
 //        m_downloadedSize += info.dlCompleted();
@@ -367,8 +391,9 @@ void DLTask::download()
          */
 //        if (peerCompleted(info))
 //            continue;
-        QNetworkRequest req(m_dlRequest.downloadUrl ());
-        if (!m_dlRequest.rawHeaders ().isEmpty ()) {
+//        QNetworkRequest req(m_dlRequest.downloadUrl ());
+        QCNetworkRequest req(m_dlRequest.downloadUrl());
+        if (!m_dlRequest.rawHeaders().isEmpty ()) {
             foreach (QByteArray key, m_dlRequest.rawHeaders ().keys ()) {
 //                QString value = m_dlRequest.rawHeaders().value(key, QByteArray());
 //                qDebug()<<Q_FUNC_INFO<<QString("insert header [%1] = [%2]").arg(QString(key)).arg(value);
@@ -385,13 +410,15 @@ void DLTask::download()
             req.setRawHeader ("Range", range.toUtf8 ());
         }
         req.setRawHeader ("Connection", "keep-alive");
+        req.setRange(info.rangeStart(), info.endIndex());
 
-        QNetworkReply *reply = m_networkMgr->get(req);
+//        QNetworkReply *reply = m_networkMgr->get(req);
+        QCNetworkAsyncReply *reply = m_networkMgr->get(req);
         if (!reply) {
             qCritical()<<Q_FUNC_INFO<<"No QNetworkReply， download cant start";
             return;
         }
-        DLTaskPeer *peer = new DLTaskPeer(m_dispatch, info, reply, 0);
+        DLTaskPeer *peer = new DLTaskPeer(m_dispatch, info, reply, Q_NULLPTR);
 //        peer->moveToThread (m_workerThread);
         m_dlCompletedCountHash.insert(peer->hash(), info.dlCompleted());
         m_peerList.append(peer);
@@ -423,7 +450,7 @@ void DLTask::initTaskInfo()
     /// FIX
     /// After adjusted save-name, check if resumable task available in database
     m_dlTaskInfo.clear();
-    foreach (DLTaskInfo info, m_transDB->list()) {
+    foreach (const DLTaskInfo &info, m_transDB->list()) {
         if (QUrl(info.requestUrl()) == m_dlRequest.requestUrl()
 //                && info.downloadUrl() == m_dlRequest.downloadUrl() //check if url redirected
                 && info.filePath() == m_dlRequest.filePath()
@@ -458,7 +485,7 @@ void DLTask::initTaskInfo()
 //                qDebug()<<Q_FUNC_INFO<<"............. new request "<<m_dlRequest;
 
                 /// We lookup database to find if there's exist task again
-                foreach (DLTaskInfo info, m_transDB->list()) {
+                foreach (const DLTaskInfo &info, m_transDB->list()) {
                     if (QUrl(info.requestUrl()) == m_dlRequest.requestUrl()
                             && info.filePath() == m_dlRequest.filePath()
                             && info.totalSize() == m_bytesFileSize) {
@@ -571,6 +598,7 @@ bool DLTask::allPeerCompleted()
         foreach (quint64 i, m_dlCompletedCountHash.values()) {
             total += i;
         }
+        qDebug()<<Q_FUNC_INFO<<"total downlaod "<<total<<" with file size "<<m_bytesFileSize;
         if (total == m_bytesFileSize)
             return true;
         else
@@ -581,6 +609,7 @@ bool DLTask::allPeerCompleted()
         DLTaskPeerInfo info = p->info();
         qint64 completed = m_dlCompletedCountHash.value(p->hash());
         qint64 total = info.endIndex() - info.startIndex() +1;
+        qDebug()<<Q_FUNC_INFO<<"total downlaod "<<total<<" with all peers total completed size "<<completed;
         if (completed != total && total > 0) {
             ret = false;
             break;
@@ -699,31 +728,6 @@ QString DLTask::constructFileNameSuffix(const QString &filePath)
     qDebug()<<Q_FUNC_INFO<<" --------- "<<fi.fileName();
     return fi.fileName();
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

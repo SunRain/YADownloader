@@ -74,6 +74,7 @@ DLTask *DLTaskAccessMgr::get(const QString &identifier)
 
 }
 
+
 DLTaskInfoList DLTaskAccessMgr::resumables() const
 {
     return m_list;

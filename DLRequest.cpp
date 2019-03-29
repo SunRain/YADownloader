@@ -11,7 +11,9 @@ class DLRequestPriv : public QSharedData
 {
 public:
     DLRequestPriv()
-        : requestUrl(QString())
+        : cookieModeFlag(DLRequest::NotOpen)
+        , cookieFilePath(QString())
+        , requestUrl(QString())
         , downloadUrl(QString())
         , savePath(QString())
         , saveName(QString())
@@ -20,6 +22,8 @@ public:
     }
     virtual ~DLRequestPriv() {}
 
+    DLRequest::CookieFileModeFlag cookieModeFlag;
+    QString                     cookieFilePath;
     QString requestUrl;
     QString downloadUrl;
     QString savePath;
@@ -78,11 +82,29 @@ bool DLRequest::operator ==(const DLRequest &other) const
             && d.data()->preferThreadCount == other.d.data()->preferThreadCount
             && d.data()->requestUrl == other.d.data()->requestUrl
             && d.data()->saveName == other.d.data()->saveName
-            && d.data()->savePath == other.d.data()->savePath;
+            && d.data()->savePath == other.d.data()->savePath
+            && d.data()->cookieFilePath == other.d.data()->cookieFilePath
+            && d.data()->cookieModeFlag == other.d.data()->cookieModeFlag;
 }
 
 bool DLRequest::operator !=(const DLRequest &other) const {
     return !operator == (other);
+}
+
+QString DLRequest::cookieFilePath() const
+{
+    return d.data()->cookieFilePath;
+}
+
+DLRequest::CookieFileModeFlag DLRequest::cookieFileMode() const
+{
+    return  d.data()->cookieModeFlag;
+}
+
+void DLRequest::setCookieFilePath(const QString &cookieFilePath, DLRequest::CookieFileModeFlag flag)
+{
+    d.data()->cookieFilePath = cookieFilePath;
+    d.data()->cookieModeFlag = flag;
 }
 
 bool DLRequest::hasSameIdentifier(const DLRequest &other)
@@ -198,9 +220,10 @@ QDebug operator <<(QDebug dbg, const DLRequest &req)
     foreach (QByteArray key, req.rawHeaders()) {
         list.append(QString("%1=%2").arg(QString(key)).arg(QString(req.rawHeaders().value(key))));
     }
-    return dbg<<QString("DLRequest [requestUrl=%1], [downloadUrl=%2], [filePath=%3], [preferThreadCount=%4]")
+    return dbg<<QString("DLRequest [requestUrl=%1], [downloadUrl=%2], [filePath=%3], [preferThreadCount=%4], [cookieMode=%5], [cookieFile=%6]")
                 .arg(req.requestUrl()).arg(req.downloadUrl())
                 .arg(req.filePath()).arg(req.preferThreadCount())
+                .arg(req.cookieFileMode()).arg(req.cookieFilePath())
              <<QString(" [rawHeaders >>> %1]").arg(list.join(","));
 }
 

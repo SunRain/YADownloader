@@ -8,7 +8,12 @@
 #include "yadownloader_global.h"
 
 class QFile;
-class QNetworkReply;
+//class QNetworkReply;
+
+namespace QCurl {
+    class QCNetworkAsyncReply;
+}
+
 namespace YADownloader {
 
 class DLTaskPeerInfo;
@@ -84,7 +89,8 @@ class YADOWNLOADERSHARED_EXPORT DLTaskPeer : public QObject
 {
     Q_OBJECT
 public:
-    explicit DLTaskPeer(DLTaskStateDispatch *dispatch, const DLTaskPeerInfo &info, QNetworkReply *reply, QObject *parent = 0);
+    explicit DLTaskPeer(DLTaskStateDispatch *dispatch, const DLTaskPeerInfo &info,
+                        QCurl::QCNetworkAsyncReply *reply, QObject *parent = Q_NULLPTR);
     virtual ~DLTaskPeer();
 
     ///
@@ -115,7 +121,8 @@ public slots:
 
 private:
     QFile *m_file;
-    QNetworkReply *m_reply;
+//    QNetworkReply *m_reply;
+    QCurl::QCNetworkAsyncReply *m_reply;
     DLTaskStateDispatch *m_dispatch;
 
     DLTaskPeerInfo m_peerInfo;
@@ -125,6 +132,8 @@ private:
     qint64 m_doneCount;
     qint64 m_peerSize;
     bool m_replyFinish;
+    bool m_headerHack;
+    int m_headerSize;
 };
 
 typedef QList<DLTaskPeer*> DLTaskPeerList;

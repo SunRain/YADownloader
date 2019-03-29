@@ -6,7 +6,9 @@
 #include "yadownloader_global.h"
 #include "DLRequest.h"
 
-class QNetworkReply;
+namespace QCurl {
+    class QCNetworkSyncReply;
+}
 
 namespace YADownloader {
 
@@ -26,7 +28,8 @@ public:
 protected:
     void run();
 private:
-    QNetworkReply *m_reply;
+//    QNetworkReply *m_reply;
+    QCurl::QCNetworkSyncReply *m_reply;
     DLRequest *m_dlRequest;
     DLTaskStateDispatch *m_dispatch;
     bool m_requestAborted;

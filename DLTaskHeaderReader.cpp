@@ -4,12 +4,19 @@
 #include <QTimer>
 #include <QDebug>
 
-#include <QNetworkRequest>
-#include <QNetworkReply>
-#include <QNetworkAccessManager>
+//#include <QNetworkRequest>
+//#include <QNetworkReply>
+//#include <QNetworkAccessManager>
+
+#include "CurlEasyHandleInitializtionClass.h"
+#include "QCNetworkAccessManager.h"
+#include "QCNetworkSyncReply.h"
+#include "QCNetworkRequest.h"
 
 #include "DLRequest.h"
 #include "DLTaskStateDispatch.h"
+
+using namespace QCurl;
 
 namespace YADownloader {
 
@@ -39,10 +46,11 @@ void DLTaskHeaderReader::initFileSize()
 void DLTaskHeaderReader::abort()
 {
     if (m_reply) {
-        if (!m_reply->isFinished()) {
+//        if (!m_reply->isFinished()) {
             m_requestAborted = true;
-            m_reply->abort();
-        }
+//            m_reply->abort();
+//        }
+        m_reply->abort();
         disconnect(m_reply, 0, 0, 0);
         m_reply->deleteLater();
         m_reply = nullptr;
@@ -54,132 +62,97 @@ void DLTaskHeaderReader::abort()
 }
 
 void DLTaskHeaderReader::run() {
-    QNetworkAccessManager *networkMgr = new QNetworkAccessManager();
-    QEventLoop loop;
+//    QNetworkAccessManager *networkMgr = new QNetworkAccessManager();
+    QCNetworkAccessManager *networkMgr = new QCNetworkAccessManager();
+    if (!m_dlRequest->cookieFilePath().isEmpty()) {
+        DLRequest::CookieFileModeFlag flag = m_dlRequest->cookieFileMode();
+        int mode = QCNetworkAccessManager::NotOpen;
+        if ((flag & DLRequest::ReadOnly) == DLRequest::ReadOnly) {
+            mode |= QCNetworkAccessManager::CookieFileModeFlag::ReadOnly;
+        }
+        if ((flag & DLRequest::WriteOnly) == DLRequest::WriteOnly) {
+            mode |= QCNetworkAccessManager::CookieFileModeFlag::WriteOnly;
+        }
+        networkMgr->setCookieFilePath(m_dlRequest->cookieFilePath(),
+                                      static_cast<QCNetworkAccessManager::CookieFileModeFlag>(mode));
+    }
+
     QTimer timer;
     timer.setSingleShot(true);
     timer.setInterval(HEADER_READER_TIMEOUT);
 
 #define FREE_REPLY  if (m_reply) { \
-                        if (!m_reply->isFinished()) { \
-                            m_requestAborted = true; \
-                            m_reply->abort(); \
-                        } \
+                        m_requestAborted = true; \
+                        m_reply->abort(); \
                         disconnect(m_reply, 0, 0, 0); \
                         m_reply->deleteLater(); \
                         m_reply = nullptr; \
                     }
+#define FREE_BLOCK  if (timer.isActive()) timer.stop();
 
-#define FREE_BLOCK  if (timer.isActive()) timer.stop(); \
-                    if (loop.isRunning()) loop.quit();
 
     connect(&timer, &QTimer::timeout, [&]() {
         FREE_REPLY;
         FREE_BLOCK;
     });
 
-    bool breakFlag = false;
-    int count = 3;
-    QUrl rqurl(m_dlRequest->requestUrl());
-    do {
-        count--;
-        FREE_REPLY;
-        m_requestAborted = false;
-        if (count < 0) {
-            m_dispatch->dispatchFileSize(-1);
-            break;
+    QUrl reqUrl(m_dlRequest->requestUrl());
+    qint64 fileSize = -1;
+    m_requestAborted = false;
+    QCNetworkRequest req = QCNetworkRequest(reqUrl);
+    req.setFollowLocation(true);
+    if (!m_dlRequest->rawHeaders().isEmpty()) {
+        qDebug()<<"........................................";
+        foreach (QByteArray key, m_dlRequest->rawHeaders().keys()) {
+            qDebug()<<Q_FUNC_INFO<<"add header ["<<key<<"] value ["<<m_dlRequest->rawHeaders().value(key, QByteArray())<<"]";
+            req.setRawHeader(key, m_dlRequest->rawHeaders().value(key, QByteArray()));
         }
-        QNetworkRequest req = QNetworkRequest(rqurl);
-        if (!m_dlRequest->rawHeaders().isEmpty()) {
-            foreach (QByteArray key, m_dlRequest->rawHeaders().keys()) {
-                req.setRawHeader(key, m_dlRequest->rawHeaders().value(key, QByteArray()));
-            }
-        }
-        m_reply = networkMgr->head(req);
-        if (m_reply) {
-            connect (m_reply, &QNetworkReply::finished, [&]() {
-                if (m_requestAborted) {
-                    m_requestAborted = false;
-                    FREE_REPLY;
-                    if (count < 0) {
-                        m_dispatch->dispatchFileSize(-1);
-                        FREE_BLOCK;
-                        breakFlag = true;
-                        return;
-                    }
-                    FREE_BLOCK;
-                } else {
-                    QNetworkReply::NetworkError error = m_reply->error ();
-                    if (error != QNetworkReply::NoError) {
-                        qDebug()<<Q_FUNC_INFO<<"get head error ["<<m_reply->errorString()<<"]";
-                        FREE_REPLY;
-                        if (count < 0) { //re-try count out
-                            m_dispatch->dispatchFileSize(-1);
-                            FREE_BLOCK;
-                            breakFlag = true;
-                            return;
-                        }
-                        FREE_BLOCK;
-                    } else {
-                        QVariant vrt = m_reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
-                        qDebug()<<Q_FUNC_INFO<<"==== http status code "<<vrt;
-                        if (vrt.isNull() || !vrt.isValid()) {
-                            FREE_REPLY;
-                            if (count < 0) {
-                                m_dispatch->dispatchFileSize(-1);
-                                FREE_BLOCK;
-                                breakFlag = true;
-                                return;
-                            }
-                            FREE_BLOCK;
-                        } else {
-                            bool ok = false;
-                            int ret = vrt.toInt(&ok);
-                            if (!ok) {
-                                FREE_REPLY;
-                                if (count < 0) {
-                                    m_dispatch->dispatchFileSize(-1);
-                                    FREE_BLOCK;
-                                    breakFlag = true;
-                                    return;
-                                }
-                                FREE_BLOCK;
-                            } else if (ret == 200) {
-                                int size = m_reply->header(QNetworkRequest::ContentLengthHeader).toLongLong();
-                                qDebug()<<Q_FUNC_INFO<<" file size is "<<size;
-                                QUrl url = m_reply->header(QNetworkRequest::LocationHeader).toUrl();
-                                if (url.isValid ()) {
-                                    qDebug()<<Q_FUNC_INFO<<"real download url: "<<url;
-                                    m_dlRequest->setDownloadUrl(url.toString());
-                                }
-                                FREE_REPLY;
-                                m_dispatch->dispatchFileSize(size);
-                                FREE_BLOCK;
-                                breakFlag = true;
-                            } else if (ret == 302) { //redirect
-                                qDebug()<<Q_FUNC_INFO<<" try  redirect";
-                                count++; //redirect, we should add 1 to count
-                                rqurl = m_reply->header(QNetworkRequest::LocationHeader).toUrl();
-                                FREE_REPLY;
-                                FREE_BLOCK;
-                                breakFlag = false;
-                            } else if (count < 0) {
-                                FREE_REPLY;
-                                m_dispatch->dispatchFileSize(-1);
-                                FREE_BLOCK;
-                                breakFlag = true;
-                            }
-                        }
-                    }
-                }
+    }
+    m_reply = networkMgr->create(req);
+
+    if (!m_reply) {
+        m_dispatch->dispatchFileSize(-1);
+        FREE_BLOCK;
+    } else {
+        m_reply->setReceivedContentType(CurlEasyHandleInitializtionClass::HeaderOnly);
+        m_reply->setCustomHeaderFunction([&](char *buffer, size_t size)->size_t {
+            if (m_requestAborted) {
+                m_dispatch->dispatchFileSize(-1);
                 FREE_REPLY;
                 FREE_BLOCK;
-            });
-            timer.start();
-            loop.exec();
+            } else {
+                QString header(QByteArray(buffer, static_cast<int>(size)));
+                qDebug()<<Q_FUNC_INFO<<"header "<<header;
+                const int pos = header.trimmed().indexOf(":");
+                if (pos > 0) {
+                    QString key = header.mid(0, pos).simplified();
+                    QString value = header.mid(pos+1, header.length()-pos-1).simplified();
+                    if (key == "Location" && !value.isEmpty()) {
+                        reqUrl = value;
+                    }
+                    if (key == "Content-Length") {
+                        fileSize = value.toLongLong();
+                        qDebug()<<Q_FUNC_INFO<< "value "<<value<<" file size is "<<size;
+                    }
+                }
+            }
+            return size;
+        });
+        m_reply->perform();
+        NetworkError e = m_reply->error();
+        bool success = (e == NetworkNoError);
+        if (!success) {
+            QString str = m_reply->errorString();
+            FREE_REPLY;
+            FREE_BLOCK;
+            qDebug()<<Q_FUNC_INFO<<"get file size error "<<str;
+            m_dispatch->dispatchFileSize(-1);
         }
-    } while (!breakFlag);
-
+        FREE_REPLY;
+        FREE_BLOCK;
+        m_dlRequest->setDownloadUrl(reqUrl.toString());
+        m_dispatch->dispatchFileSize(fileSize);
+    }
     if (networkMgr) {
         networkMgr->deleteLater();
         networkMgr = nullptr;

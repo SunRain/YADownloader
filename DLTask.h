@@ -7,9 +7,15 @@
 #include "DLRequest.h"
 #include "DLTaskInfo.h"
 
-class QNetworkAccessManager;
-class QNetworkReply;
+//class QNetworkAccessManager;
+//class QNetworkReply;
 class QThread;
+
+namespace QCurl {
+    class QCNetworkAccessManager;
+    class QCNetworkAsyncReply;
+}
+
 namespace YADownloader {
 
 class DLTaskPeer;
@@ -35,6 +41,8 @@ public:
     /// \return DLRequest of current task, the DLRequest maybe modified by this task;
     ///
     DLRequest request() const;
+
+    DLRequest *requestPtr();
 
     ///
     /// \brief taskInfo
@@ -94,11 +102,11 @@ protected:
     bool event(QEvent *event);
 
 protected:
-    DLTask(DLTransmissionDatabase *db, QObject *parent = 0);
-    DLTask(DLTransmissionDatabase *db, const DLRequest &request, QObject *parent = 0);
+    DLTask(DLTransmissionDatabase *db, QObject *parent = Q_NULLPTR);
+    DLTask(DLTransmissionDatabase *db, const DLRequest &request, QObject *parent = Q_NULLPTR);
     DLTask(DLTransmissionDatabase *db, const DLTaskInfo &info,
            const QHash<QByteArray, QByteArray> &rawHeaders = QHash<QByteArray, QByteArray>(),
-           QObject *parent = 0);
+           QObject *parent = Q_NULLPTR);
     void setRequest(const DLRequest &request);
 
 signals:
@@ -128,9 +136,12 @@ private:
     QString constructFileNameSuffix(const QString &filePath);
 
 private:
-    QNetworkAccessManager *m_networkMgr;
-    QNetworkReply *m_reply;
-    QNetworkReply *m_headReply;
+//    QNetworkAccessManager *m_networkMgr;
+    QCurl::QCNetworkAccessManager *m_networkMgr;
+//    QNetworkReply *m_reply;
+//    QNetworkReply *m_headReply;
+    QCurl::QCNetworkAsyncReply *m_reply;
+//    QCurl::QCNetworkAsyncReply *m_headReply;
 //    QThread *m_workerThread;
     DLTaskHeaderReader *m_headerReader;
     DLTaskStateDispatch *m_dispatch;
